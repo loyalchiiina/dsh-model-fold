@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.1 (2026-09-12)
+
+- Fixed: clicking a model in the side panel could never select it. The
+  ModelSelect component closes its menu on outside `mousedown` and on focus
+  leaving the menu root (`onBlur`); both fired before the programmatic click
+  reached the real button, leaving the cached button detached from the
+  document so React never received the event ("cannot switch models").
+  - The panel now stops propagation and prevents default on `mousedown`,
+    keeping the menu open while the panel is being clicked.
+  - Group titles prevent the default focus shift on `mousedown` so the menu
+    is not closed before the side panel opens.
+
 ## 0.3.0 (2026-09-12)
 
 - New: panel mode (default) — the menu lists sources only; clicking a source
