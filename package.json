@@ -1,0 +1,38 @@
+{
+  "name": "dsh-model-fold",
+  "version": "0.3.0",
+  "description": "模型选择菜单按来源（provider）展开分类：默认菜单只列来源，点来源右侧滑出子面板选模型；双击来源标题切换为列表内展开（v0.2.0 行为，已备份）",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/*.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "model-selection",
+    "ui"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loyalchiiina/dsh-model-fold.git"
+  }
+}
