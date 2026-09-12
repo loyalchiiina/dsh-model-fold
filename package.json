@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-fold",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "模型选择菜单按来源（provider）展开分类：默认菜单只列来源，点来源右侧滑出子面板选模型；双击来源标题切换为列表内展开（v0.2.0 行为，已备份）",
   "type": "module",
   "main": "./lib/index.js",
