@@ -6,11 +6,13 @@ English: group the model menu by provider — the menu lists sources first, and
 each source's models open either in a slide-in side panel (default) or inline
 below the title. Double-click a source title to switch modes.
 
-## 功能（v0.3.0，双模式）
+## 功能（v0.4.0，双模式）
 
 - **panel 模式（默认）**：菜单只列来源（▸ 箭头 + 来源名 + 模型数），点击来源从
-  **右侧滑出子面板**列出该来源的全部模型；点面板里的模型即完成选择；正在使用的
-  模型所在来源标 ✓。
+  **右侧滑出子面板**列出该来源的全部模型；点面板里的模型即完成选择。
+- **当前选择一眼可见**：正在使用的模型所在来源组标注 **`(当前·N) 模型名`**
+  （加粗 + 品牌色徽标），无需打开子面板就知道用的哪个来源、哪个模型；
+  子面板内选中项保留 ✓。
 - **inline 模式**：点击来源在下方折叠/展开该组模型（v0.2.0 行为），状态跨菜单记忆。
 - **双击任意来源标题**在两种模式间切换，选择即时生效并记住。
 - 子面板样式自适应主题（背景/文字/圆角/选中色均取自原菜单计算样式）。
