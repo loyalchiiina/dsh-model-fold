@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.0 (2026-09-15)
+
+- Changed: the provider group that contains the currently selected model is
+  now labeled directly in the source list (总集). Its badge reads
+  `(当前·N) <selected model name>` instead of `(N ✓)`, so you can tell at a
+  glance which source and which model are active without opening the panel.
+  The selected group's title is bolded and its badge tinted with the brand
+  color. Side-panel items keep their per-model ✓ unchanged.
+- Probe: DOM-stub regression added (`probe-badge.mjs`, 12/12): asserts the
+  当前 badge content, plain `(N)` badges on other groups, CURRENT_ATTR
+  placement, and the panel-side ✓ on the selected model.
+
 ## 0.3.1 (2026-09-12)
 
 - Fixed: clicking a model in the side panel could never select it. The
