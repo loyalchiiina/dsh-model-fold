@@ -1,5 +1,10 @@
 node_modules/
 *.tgz
-*.log
-.DS_Store
-temp/
+
+# 开发/调试杂物（2026-09-17 补）
+*.bak
+*.bak-*
+*.broken-*
+_resume/
+__pycache__/
+*.pyc
