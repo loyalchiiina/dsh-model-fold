@@ -20,7 +20,7 @@ Add three or five providers and the model menu runs off the screen — two dozen
 
 ---
 
-## 功能亮点（v0.4.0，双模式）
+## 功能亮点（v0.4.1，双模式）
 
 - 📋 **来源优先**：菜单只列来源（▸ 箭头 + 来源名 + 模型数），一屏看清有几个来源。
 - ➡️ **右侧滑出子面板（默认）**：点来源，模型从**右侧滑出**成一列，点中即选中。
@@ -30,7 +30,7 @@ Add three or five providers and the model menu runs off the screen — two dozen
 - 🧩 **纯 DOM 增强，零侵入**：面板是插件自建 DOM，选择通过程序化点击原菜单真实按钮完成，**不移动、不删除任何 React 管理的节点**，与其他插件兼容。
 - 🔒 **不联网**：插件没有任何网络请求，逻辑全在本地 DOM。
 
-## Features (v0.4.0, dual mode)
+## Features (v0.4.1, dual mode)
 
 - 📋 **Sources first** — the menu lists providers only (▸ arrow + name + model count).
 - ➡️ **Slide-in side panel (default)** — click a source and its models slide out from the right; click to select.

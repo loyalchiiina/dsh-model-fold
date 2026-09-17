@@ -1,7 +1,7 @@
 {
   "name": "dsh-model-fold",
-  "version": "0.4.0",
-  "description": "模型选择菜单按来源（provider）展开分类：默认菜单只列来源，点来源右侧滑出子面板选模型；双击来源标题切换为列表内展开（v0.2.0 行为，已备份）",
+  "version": "0.4.1",
+  "description": "模型菜单别再一条道排到底：按来源（provider）分组，菜单只列来源名与模型数，点来源从右侧滑出该来源的全部模型；当前正在使用的模型在来源标题上标注「(当前·N) 模型名」一眼可见；双击任意来源标题可切换为列表内展开模式。纯 DOM 增强，不移动不删除任何 React 节点，不联网。| Stop scrolling one endless model list: group the DSH model picker by provider. The menu lists sources with model counts, clicking one slides its models out from the right, and the model currently in use is labelled right on the source heading. Double-click to switch to inline expansion. Pure DOM enhancement, no network access.",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {

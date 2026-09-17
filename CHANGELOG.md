@@ -1,5 +1,18 @@
 # Changelog
 
+
+## 0.4.1 (2026-09-17)
+
+- **Docs: bilingual hero section and a much fuller README.** The file previously
+  held one Chinese and one English sentence; it now opens with a bilingual hook,
+  the model-picker screenshot (source list on the left, slide-in model panel on
+  the right) with a caption, a "the problem" section in both languages, the full
+  feature list in both languages, install instructions, the dual-mode rollback
+  note, the DOM-enhancement explanation and a bilingual FAQ.
+- **package.json description rewritten as a bilingual value proposition**:
+  leads with the benefit (stop scrolling one endless model list) and then
+  describes grouping by provider, the slide-in panel, the `(当前·N) 模型名`
+  current-model badge, and the double-click mode switch.
 All notable changes to this project are documented in this file.
 
 ## 0.4.0 (2026-09-15)
