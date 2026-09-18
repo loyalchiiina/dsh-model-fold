@@ -6,6 +6,36 @@ English: group the model menu by provider — the menu lists sources first, and
 each source's models open either in a slide-in side panel (default) or inline
 below the title. Double-click a source title to switch modes.
 
+## 功能总览 · At a glance（中英对照 / Bilingual）
+
+### 导航模式 · Navigation modes
+
+| 中文 | English |
+|---|---|
+| 菜单只列模型来源（provider），每个来源带 ▸ 箭头与模型数 | The menu lists sources (providers) first, each with a ▸ arrow and model count |
+| **panel 模式（默认）**：点来源从右侧滑出子面板，列出该来源全部模型 | **Panel mode (default)**: clicking a source slides in a side panel with all of its models |
+| **inline 模式**：点来源在标题下方折叠/展开该组模型 | **Inline mode**: clicking a source folds/expands its models right below the title |
+| 双击任意来源标题即可切换两种模式，选择即时生效并记住 | Double-click any source title to switch modes; the choice applies instantly and is remembered |
+| 模式与折叠状态跨菜单打开持久化（localStorage） | Mode & fold state persist across menu opens (localStorage) |
+
+### 选择与视觉 · Selection & visuals
+
+| 中文 | English |
+|---|---|
+| 正在使用的模型所在来源组标注 `(当前·N) 模型名`（加粗 + 品牌色徽标） | The active model's source group is labelled `(当前·N) model` — bold + brand-colour badge |
+| 子面板内选中模型保留 ✓ 标记 | The selected model keeps its ✓ mark inside the side panel |
+| 子面板样式自适应主题（背景/文字/圆角/选中色取自原菜单计算样式） | Side panel adapts to the theme (bg/text/radius/selected colours read from the real menu) |
+
+### 生态与隐私 · Ecosystem & privacy
+
+| 中文 | English |
+|---|---|
+| 纯 DOM 增强：不移动、不删除任何 React 管理的节点，与其他插件兼容 | DOM-only enhancement: never moves or removes React-managed nodes, compatible with other plugins |
+| 选择通过程序化点击原菜单真实按钮完成 | Selections are made by programmatically clicking the real menu buttons |
+| 零网络请求，全部逻辑在本地 DOM 完成 | Zero network requests — everything runs locally |
+
+---
+
 ## 功能（v0.4.0，双模式）
 
 - **panel 模式（默认）**：菜单只列来源（▸ 箭头 + 来源名 + 模型数），点击来源从
