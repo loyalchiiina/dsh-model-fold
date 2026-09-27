@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.7 (2026-09-27)
+
+Fixes three defects that all stem from coupling with the host component's own
+behaviour. Documented in README's "How it works" for anyone enhancing official
+React UI from the outside.
+
+- **Fixed: the side panel flickered and vanished.** Collapsing a provider hides
+  its real model buttons with `display:none`, but the host focuses the *currently
+  selected* model button when the model list opens. Hiding the focused element
+  forces a blur whose `relatedTarget` is `null`; the host's root `onBlur` then
+  treats focus as having left the menu and calls `close()`, taking the menu and
+  the freshly opened panel with it. The plugin now moves focus back to the menu
+  trigger **before** hiding anything (the trigger lives inside the host's
+  `rootRef`, so `onBlur` returns early).
+- **Fixed: clicking a provider did nothing.** Click/mousedown handlers were bound
+  to the provider heading — a React-managed node that React replaces on re-render
+  — so the handler sat on a detached node and never fired. All interaction is now
+  handled by a single capture-phase delegate on `document`, resolving the target
+  by walking up from the event target; no node references are held.
+- **Fixed: the panel was transparent and its text unreadable.** The host menu's
+  `background-color` is `transparent`; the real colour comes from
+  `--dsw-specific-menu`, whose value is an **8-digit hex** such as `#43454a73`
+  (alpha ≈ 45%). Only parsing `rgb()/rgba()` missed it, so the panel fell back to
+  the ancestor colour and looked darker than the menu. `parseColor` now handles
+  `#rgb/#rgba/#rrggbb/#rrggbbaa`, and the translucent menu surface colour is
+  composited over the ancestor colour to yield an equivalent **opaque** colour.
+- Changed: the provider list and the model subset now share identical typography
+  and metrics (15px / 600 / 22px line-height, 38px rows, 8px 10px padding) and the
+  same colour tokens. The same theme variables are injected onto the menu element
+  (not only the panel) so both levels resolve to one colour.
+- Changed: the selection ✓ is larger (16px, bold, brand colour) and the selected
+  row gains a brand-coloured left bar.
+- Fixed: hot-reload could leave multiple live instances (each with its own
+  listeners), so two instances fought over the same click. `dispose()` now removes
+  every listener and timer, and a singleton guard tears down the previous
+  instance before a new one starts.
+- Removed: all temporary diagnostic instrumentation (trace channel, four extra
+  document listeners, two timers, and the host-side loopback route).
+
 ## 0.4.0 (2026-09-15)
 
 - Changed: the provider group that contains the currently selected model is
