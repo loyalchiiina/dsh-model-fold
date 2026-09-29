@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.8 - 官方 DSH 兼容声明与引擎版本口径修正
+
+依照 DeepSeek Harness **官方规范**（`packages/boot/app-boot/README.md`）修正兼容性声明。
+
+- **新增官方 DSH 兼容声明**：内核检查的是 `peerDependencies` 中的
+  `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 范围，**不读取 `engines.dsh`**。
+  现已在 `peerDependencies` 与 `devDependencies` 同范围声明：
+  `@deepseek-ai/cordis` `^4.0.2`、`@deepseek-ai/dsh` `>=0.1.7-rc.1`。
+- **引擎口径修正为内核版本**：此前 `engines` 只写 `node`，未声明 DSH 内核要求；
+  现补 `engines.dsh = >=0.1.7-rc.1`（内核版本口径，非客户端/外壳版本）。
+- 说明：`^0.1.7` **不匹配**预发布内核 `0.1.7-rc.2`，故范围使用显式预发布下限。
+
+无功能变更。
+
+
 All notable changes to this project are documented in this file.
 
 ## 0.4.7 (2026-09-27)

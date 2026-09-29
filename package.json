@@ -1,42 +1,53 @@
 {
-  "name": "dsh-model-fold",
-  "version": "0.4.7",
-  "description": "模型选择器按来源分组：点来源右侧滑出该来源的模型子面板，当前模型一眼可见，双击切换展开模式。| Group the DSH model picker by provider: click a source to slide its models out, see the active model at a glance, double-click to switch modes.",
-  "type": "module",
-  "main": "./lib/index.js",
-  "exports": {
-    ".": "./lib/index.js",
-    "./client": "./lib/client.js",
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "lib/*.js",
-    "cordis.patch.yml",
-    "README.md",
-    "LICENSE",
-    "docs/images/**"
-  ],
-  "license": "MIT",
-  "keywords": [
-    "dsh-plugin",
-    "deepseek-harness",
-    "model-selection",
-    "ui"
-  ],
-  "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
-    "client": {
-      "platform": "web",
-      "inject": []
-    }
-  },
-  "engines": {
-    "dsh": ">=2.0.15-next"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/loyalchiiina/dsh-model-fold.git"
-  }
+    "name":  "dsh-model-fold",
+    "version":  "0.4.8",
+    "description":  "模型选择器按来源分组：点来源右侧滑出该来源的模型子面板，当前模型一眼可见，双击切换展开模式。| Group the DSH model picker by provider: click a source to slide its models out, see the active model at a glance, double-click to switch modes.",
+    "type":  "module",
+    "main":  "./lib/index.js",
+    "exports":  {
+                    ".":  "./lib/index.js",
+                    "./client":  "./lib/client.js",
+                    "./package.json":  "./package.json"
+                },
+    "files":  [
+                  "lib/*.js",
+                  "cordis.patch.yml",
+                  "README.md",
+                  "LICENSE",
+                  "docs/images/**"
+              ],
+    "license":  "MIT",
+    "keywords":  [
+                     "dsh-plugin",
+                     "deepseek-harness",
+                     "model-selection",
+                     "ui"
+                 ],
+    "dsh":  {
+                "bundle":  {
+                               "patch":  "./cordis.patch.yml"
+                           },
+                "client":  {
+                               "platform":  "web",
+                               "inject":  [
+
+                                          ]
+                           }
+            },
+    "engines":  {
+                    "node":  "\u003e=18",
+                    "dsh":  "\u003e=0.1.7-rc.1"
+                },
+    "repository":  {
+                       "type":  "git",
+                       "url":  "git+https://github.com/loyalchiiina/dsh-model-fold.git"
+                   },
+    "peerDependencies":  {
+                             "@deepseek-ai/cordis":  "^4.0.2",
+                             "@deepseek-ai/dsh":  "\u003e=0.1.7-rc.1"
+                         },
+    "devDependencies":  {
+                            "@deepseek-ai/cordis":  "^4.0.2",
+                            "@deepseek-ai/dsh":  "\u003e=0.1.7-rc.1"
+                        }
 }
