@@ -2,13 +2,23 @@
 
 **模型菜单别再一条道排到底。** 给 DeepSeek Harness（DSH）的模型选择菜单加**按来源（provider）分组**的导航能力。
 
-**Stop scrolling one endless model list.** Group the DSH model picker by provider — the menu lists sources first, and each source's models open in a slide-in side panel (default) or inline below the title.
+**Stop scrolling one endless model list.** Group the DSH model picker by provider — the menu lists sources first, and each source's models open in a slide-in side panel (hover / click) or inline below the title.
+
+## 三种模式 / Three modes
+
+| 悬浮模式（默认） | 列表模式 |
+|---|---|
+| ![悬浮模式](docs/images/mode-hover.png) | ![列表模式](docs/images/mode-list.png) |
+| **鼠标划过**来源 → 右侧滑出该来源的模型；移开自动收起 | 点来源 → 在**下方就地展开**该来源的模型 |
+
+> 第三种是**面板模式**（`panel`）：样子与悬浮模式相同，但需要**单击**来源才滑出面板（不做悬停触发）。
 
 ![模型菜单按来源折叠](docs/images/model-fold-panel.png)
 
-> 左下：折叠后的来源列表（`DeepSeek (4)`、`ark-code-latest (1)`…）
-> 右侧：点来源后从右滑出的模型子面板（DeepSeek-V4.1-Flash、GLM-5.3、MiniMax-M3、Qwen3.8-Max、Kimi-K3…）
-> Left: the folded source list · Right: the slide-in model panel for the selected source
+> 左下：折叠后的来源列表（`DeepSeek (4)`、`OpenSquilla TokenRhythm 网关 (23)`…）
+> 右侧：悬停/点击来源后从右滑出的模型子面板（DeepSeek-V4.1-Flash、GLM-5.3、MiniMax-M3、Kimi-K3…）
+> **底部**：设置条 —— 一键切换模式与字号
+> Left: the folded source list · Right: the slide-in model panel · Bottom: mode + font-size switcher
 
 ---
 
@@ -20,24 +30,28 @@ Add three or five providers and the model menu runs off the screen — two dozen
 
 ---
 
-## 功能亮点（v0.4.7，双模式）
+## 功能亮点（v0.5.0，三模式）
 
+- 🖱 **悬浮展开（默认）**：**鼠标划过**来源标题，该来源的模型就从右侧滑出；移开自动收起。不用点击，选模型更快。
 - 📋 **来源优先**：菜单只列来源（▾ 箭头 + 来源名 + 模型数），一屏看清有几个来源。
-- ➡️ **右侧滑出子面板（默认）**：点来源，模型从**右侧滑出**成一列，点中即选中。
-- 👁 **当前模型一眼可见**：正在使用的模型所在来源组标注 **`(当前·N) 模型名`**（加粗 + 品牌色徽标），无需打开子面板就知道用的哪个来源、哪个模型；子面板内选中项保留 ✓。
-- 🔄 **双模式自由切换**：**双击任意来源标题**在「滑出面板」与「列表内展开」之间切换，选择即时生效并记住。
-- 🎨 **配色与排版跟随官方**：背景、文字、悬停、圆角、字号全部与官方菜单**同源**（复用官方 `--dsw-*` 主题变量），并保证底色**不透明**、对比度充足；来源清单与子集清单**尺寸与配色完全统一**。
-- 🧩 **纯 DOM 增强，零侵入**：面板是插件自建 DOM，选择通过程序化点击原菜单真实按钮完成，**不移动、不删除任何 React 管理的节点**，与其他插件兼容。
+- 👁 **当前来源与模型一眼可见**：正在使用的来源标注 **`当前·模型名`**（加粗 + 品牌色），子面板内选中项保留 ✓。
+- 🔄 **三模式自由切换**：双击任意来源标题循环切换 `悬浮 → 面板 → 列表`；**菜单底部设置条**也可直接点选，选择即时生效并记住。
+- 🔤 **面板内调字号**：设置条提供 `10 / 11 / 12 / 13` 四档字号，点一下即刻生效，全菜单与子面板同步。
+- 💡 **自带用法提示**：菜单顶部有一行小字`双击来源标题可切换展开方式（当前：悬浮展开）`，新用户不必猜。
+- 🎨 **配色与排版跟随官方**：背景、文字、悬停、圆角全部复用官方 `--dsw-*` 主题变量，底色**不透明**、对比度充足；来源清单与子集清单**尺寸与配色完全统一**。
+- 🧩 **纯 DOM 增强，零侵入**：面板与设置条都是插件自建 DOM，选择通过程序化点击原菜单真实按钮完成，**不移动、不删除任何 React 管理的节点**，与其他插件兼容。
 - 🔒 **不联网**：插件没有任何网络请求，逻辑全在本地 DOM。
 
-## Features (v0.4.7, dual mode)
+## Features (v0.5.0, three modes)
 
+- 🖱 **Hover to open (default)** — glide over a source heading and its models slide out from the right; they retract when you leave. No click needed.
 - 📋 **Sources first** — the menu lists providers only (▾ arrow + name + model count).
-- ➡️ **Slide-in side panel (default)** — click a source and its models slide out from the right; click to select.
-- 👁 **Current model always visible** — the active source is tagged `(current · N) model-name` (bold + brand-colour badge), with ✓ on the selection inside the panel.
-- 🔄 **Two modes, switchable** — double-click any source heading to toggle between slide-in panel and inline expansion; applied instantly and remembered.
-- 🎨 **Colours and type follow the host** — background, text, hover, radius and font size all come from the SAME `--dsw-*` tokens the official menu uses, with an enforced **opaque** background and sufficient contrast. The provider list and the model subset share identical sizing and colour.
-- 🧩 **Pure DOM enhancement, zero intrusion** — the panel is plugin-owned DOM and selection happens by programmatically clicking the real menu buttons; **no React-managed node is moved or removed**, so it plays well with other plugins.
+- 👁 **Active source & model at a glance** — the current source is tagged `当前·model-name` (bold + brand colour), with ✓ on the selection inside the panel.
+- 🔄 **Three modes, switchable** — double-click any source heading to cycle `hover → panel → inline`, or use the in-menu switcher. Applied instantly and remembered.
+- 🔤 **Font size right in the menu** — pick `10 / 11 / 12 / 13`; both the menu and the side panel follow.
+- 💡 **Built-in hint** — a one-line tip at the top of the menu tells new users about mode switching.
+- 🎨 **Colours and type follow the host** — background, text, hover and radius all come from the SAME `--dsw-*` tokens the official menu uses, with an enforced **opaque** background.
+- 🧩 **Pure DOM enhancement, zero intrusion** — the panel and the settings bar are plugin-owned DOM; selection happens by programmatically clicking the real menu buttons; **no React-managed node is moved or removed**.
 - 🔒 **No network access** — zero requests, all logic runs locally in the DOM.
 
 ---

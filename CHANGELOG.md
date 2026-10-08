@@ -1,21 +1,53 @@
 # Changelog
 
-## 0.4.8 - 官方 DSH 兼容声明与引擎版本口径修正
+## 0.5.0 - 新增悬浮模式、面板内设置条与字号调节；修复来源标题样式长期失效
 
-依照 DeepSeek Harness **官方规范**（`packages/boot/app-boot/README.md`）修正兼容性声明。
+### 新增 / Added
 
-- **新增官方 DSH 兼容声明**：内核检查的是 `peerDependencies` 中的
-  `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 范围，**不读取 `engines.dsh`**。
-  现已在 `peerDependencies` 与 `devDependencies` 同范围声明：
-  `@deepseek-ai/cordis` `^4.0.2`、`@deepseek-ai/dsh` `>=0.1.7-rc.1`。
-- **引擎口径修正为内核版本**：此前 `engines` 只写 `node`，未声明 DSH 内核要求；
-  现补 `engines.dsh = >=0.1.7-rc.1`（内核版本口径，非客户端/外壳版本）。
-- 说明：`^0.1.7` **不匹配**预发布内核 `0.1.7-rc.2`，故范围使用显式预发布下限。
+- **悬浮模式（新默认）**：鼠标划过来源标题即从右侧滑出该来源的模型，移开自动收起（延迟 260ms，避免掠过间隙时闪烁）。无需点击即可选模型。
+  - 同一产品线此前需单击来源才滑出；现在「悬停」成为默认交互。
+  - 三模式循环：`悬浮 → 面板 → 列表`，双击任意来源标题切换。
+- **菜单内设置条**：菜单底部新增一行按钮，可直接切模式（悬浮 / 面板 / 列表）与调字号（`10 / 11 / 12 / 13`）。
+  - `position:sticky;bottom:0` —— 菜单滚动时始终可见。
+  - 字号写入 `documentElement` 的 `--mf-fs`，菜单与侧边面板同步生效，选择持久化。
+  - 按钮的 `mousedown` / `click` 均 `stopPropagation`，不会触发宿主的「点击外部关闭」。
+- **用法提示行**：菜单顶部显示小字 `双击来源标题可切换展开方式（当前：悬浮展开）`，降低新用户上手门槛。
+- **模式默认值迁移**：老用户 `localStorage` 里若存着旧默认值 `panel`（非主动选择），一次性迁移到 `hover`；迁移后若用户再次显式选择 `panel`，则尊重其选择（迁移标记保证只做一次）。
 
-无功能变更。
+### 修复 / Fixed
+
+- **🔴 来源标题（分组标题）的全部自定义样式从未生效。**
+  - 根因：内核 `MenuGroup` 渲染的 `section[role="group"]` 第一个子元素是 `span[data-menu-group-start]`，而插件 CSS 一直用 `section[role="group"] > div:first-child`（要求首个子元素是 `div`）定位标题 —— **选择器永不匹配**。
+  - 影响面：折叠箭头 ▾/▸、悬停高亮、「当前来源」品牌色高亮与徽标（`当前·模型名`）等 **10 条 CSS 规则**全部失效；用户因此长期看不到「当前用的是哪个来源下的哪个模型」。
+  - 修法：改用内核**显式提供**的属性钩子 `[data-menu-group-heading]`（CSS 10 处 + JS 兜底查找 4 处），比任何位置选择器都稳定。
+- **字号切换「时好时坏」**
+  - 根因：`paneSignature()` 把菜单每个子节点的 `index + tagName + className` 拼进签名，用于判断菜单视图是否切换。设置的按钮每次重建会改变签名 → 被误判为「pane 切换」→ `resetView()` 清掉自建 DOM → 按钮事件与状态丢失。
+  - 修法三条：① 签名计算排除插件自建节点（提示条 / 设置条）；② 设置条改为**幂等更新**，只在首次创建按钮，之后仅刷新高亮，不再增删节点；③ 字号点击只调 `syncConfigBar()`（只改 `data-on`），不再触发 `resetMenuGroups` / `enhance`。
+- **字号整体调小**：正文 15px → 11px、行高 22px → 16px、条目高 38px → 32px → 28px、箭头 12px → 10px（并接入 `--mf-fs` 变量，由设置条控制）。
+
+### 文档 / Docs
+
+- README 重写「三种模式」章节，配 `docs/images/mode-hover.png`（悬浮模式）与 `docs/images/mode-list.png`（列表模式）两张效果图。
+- `package.json` 描述同步更新为「悬停滑出 + 面板内切换模式与字号」。
 
 
 All notable changes to this project are documented in this file.
+
+## 0.4.8 (2026-10-08)
+
+Declare official DSH peer requirements and kernel version range.
+
+- **Official DSH compatibility declaration**: the kernel checks
+  `peerDependencies` for `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` ranges and
+  does **not** read `engines.dsh`. Both `peerDependencies` and
+  `devDependencies` now declare the same range:
+  `@deepseek-ai/cordis` `^4.0.2`, `@deepseek-ai/dsh` `>=0.1.7-rc.1`.
+- **Engine field now uses the kernel version**: previously `engines` only set
+  `node`; added `engines.dsh = >=0.1.7-rc.1` (kernel version, not client/shell).
+- Note: `^0.1.7` does **not** match prerelease kernels such as `0.1.7-rc.2`,
+  hence the explicit prerelease lower bound.
+
+No functional change.
 
 ## 0.4.7 (2026-09-27)
 
