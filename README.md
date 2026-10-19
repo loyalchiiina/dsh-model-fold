@@ -35,9 +35,9 @@ Add three or five providers and the model menu runs off the screen — two dozen
 - 🖱 **悬浮展开（默认）**：**鼠标划过**来源标题，该来源的模型就从右侧滑出；移开自动收起。不用点击，选模型更快。
 - 📋 **来源优先**：菜单只列来源（▾ 箭头 + 来源名 + 模型数），一屏看清有几个来源。
 - 👁 **当前来源与模型一眼可见**：正在使用的来源标注 **`当前·模型名`**（加粗 + 品牌色），子面板内选中项保留 ✓。
-- 🔄 **三模式自由切换**：双击任意来源标题循环切换 `悬浮 → 面板 → 列表`；**菜单底部设置条**也可直接点选，选择即时生效并记住。
+- 🔄 **三模式自由切换**：双击任意来源标题循环切换 `悬浮 → 列表 → 面板`（即 `hover → inline → panel`）；**菜单底部设置条**也可直接点选，选择即时生效并记住。
 - 🔤 **面板内调字号**：设置条提供 `10 / 11 / 12 / 13` 四档字号，点一下即刻生效，全菜单与子面板同步。
-- 💡 **自带用法提示**：菜单顶部有一行小字`双击来源标题可切换展开方式（当前：悬浮展开）`，新用户不必猜。
+- 💡 **自带用法提示**：菜单**底部（设置条上方）**有一行小字`双击来源标题可切换展开方式（当前：悬浮展开）`，新用户不必猜。
 - 🎨 **配色与排版跟随官方**：背景、文字、悬停、圆角全部复用官方 `--dsw-*` 主题变量，底色**不透明**、对比度充足；来源清单与子集清单**尺寸与配色完全统一**。
 - 🧩 **纯 DOM 增强，零侵入**：面板与设置条都是插件自建 DOM，选择通过程序化点击原菜单真实按钮完成，**不移动、不删除任何 React 管理的节点**，与其他插件兼容。
 - 🔒 **不联网**：插件没有任何网络请求，逻辑全在本地 DOM。
@@ -47,9 +47,9 @@ Add three or five providers and the model menu runs off the screen — two dozen
 - 🖱 **Hover to open (default)** — glide over a source heading and its models slide out from the right; they retract when you leave. No click needed.
 - 📋 **Sources first** — the menu lists providers only (▾ arrow + name + model count).
 - 👁 **Active source & model at a glance** — the current source is tagged `当前·model-name` (bold + brand colour), with ✓ on the selection inside the panel.
-- 🔄 **Three modes, switchable** — double-click any source heading to cycle `hover → panel → inline`, or use the in-menu switcher. Applied instantly and remembered.
+- 🔄 **Three modes, switchable** — double-click any source heading to cycle `hover → inline → panel`, or use the in-menu switcher. Applied instantly and remembered.
 - 🔤 **Font size right in the menu** — pick `10 / 11 / 12 / 13`; both the menu and the side panel follow.
-- 💡 **Built-in hint** — a one-line tip at the top of the menu tells new users about mode switching.
+- 💡 **Built-in hint** — a one-line tip at the **bottom of the menu (above the settings bar)** tells new users about mode switching.
 - 🎨 **Colours and type follow the host** — background, text, hover and radius all come from the SAME `--dsw-*` tokens the official menu uses, with an enforced **opaque** background.
 - 🧩 **Pure DOM enhancement, zero intrusion** — the panel and the settings bar are plugin-owned DOM; selection happens by programmatically clicking the real menu buttons; **no React-managed node is moved or removed**.
 - 🔒 **No network access** — zero requests, all logic runs locally in the DOM.
@@ -60,10 +60,14 @@ Add three or five providers and the model menu runs off the screen — two dozen
 
 | 项目 | 版本 |
 |---|---|
-| DSH 桌面端（内核） | **2.0.15-next**（`dsh-desktop-next`） |
-| 官方模型选择组件 | `@deepseek-ai/dsh-client-ui-model-selection` **0.1.7-rc.2** |
+| DSH 桌面端（内核，实测） | **2.0.18-next**（`dsh-desktop-next`） |
+| 官方模型选择组件（实测） | `@deepseek-ai/dsh-client-ui-model-selection` **0.2.1-alpha.2** |
 | 客户端运行环境 | DSH Web GUI（Electron renderer，`dsh-app://app/`） |
-| `engines.dsh` | `>=2.0.15-next` |
+| `engines.dsh`（本包声明） | `>=0.1.7-rc.1` |
+
+> 上表「实测」两行是本机 2026-10-19 从 `app.asar` 读出的真实版本，只作参考；本包自身只声明
+> `engines.dsh: ">=0.1.7-rc.1"` 与 `peerDependencies["@deepseek-ai/dsh"]: ">=0.1.7-rc.1"`，
+> 不硬绑某个具体内核版本。
 
 本插件增强的是 **两级下钻菜单**（`root` → `model` / `effort`）：
 
@@ -80,7 +84,7 @@ div[role="menu"]                      ← 官方 portal 到 body 的浮层
 
 **若你的 DSH 内核版本不同**：官方若改动 `section[role="group"]` / `aria-labelledby` / `menuitemradio` 这套语义结构，插件会因选择器失配而静默不生效（不会报错、不会破坏原菜单）。可在 DSH 里按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> 打开 DevTools，确认上述结构后再提 issue。
 
-两种模式的交互细节见 [docs/modes.md](docs/modes.md)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
+三种模式的交互细节见 [docs/modes.md](docs/modes.md)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
@@ -110,20 +114,35 @@ dsh plugin --profile desktop add dsh-model-fold
 
 ## 回滚 / 模式说明 · Rollback
 
-v0.3.0 起为双模式：默认 **panel**（右侧子面板），双击任意来源标题可切换为 **inline**（下方列表展开）模式；inline 模式下折叠状态跨菜单记忆。若需要回到 v0.2.0（单 inline 模式）版本，可从 GitHub Releases 获取历史版本。
+自 **v0.5.0** 起为**三模式**：默认 **hover**（划过来源标题就地滑出该来源的模型），双击任意来源标题按 `悬浮 → 列表 → 面板` 循环切换，也可用菜单底部设置条直接点选；选择写入 localStorage 并跨菜单记忆。`panel`（右侧子面板）是 v0.3.0～v0.4.x 的旧默认值，老用户首次升级会自动迁移到 `hover`，之后若再次显式选 `panel` 则尊重你的选择。若要回到 v0.2.0（单 inline 模式）版本，可从 GitHub Releases 获取历史版本。
 
-Since v0.3.0 the plugin ships two modes: **panel** (side panel, default) and **inline** (expand below the heading), switched by double-clicking any source heading. To return to the v0.2.0 single-mode behaviour, grab a historical release from GitHub Releases.
+Since **v0.5.0** the plugin ships **three** modes: **hover** (default — glide over a source heading and its models slide out), with double-click cycling `hover → inline → panel`; the in-menu settings bar at the bottom lets you pick one directly. The choice is persisted across menu opens. `panel` was the default in v0.3.0–v0.4.x; users upgrading from that era are migrated to `hover` once, and any later explicit `panel` choice is respected. To return to the v0.2.0 single-mode behaviour, grab a historical release from GitHub Releases.
 
 ---
 
 ## 更新日志 / Changelog
+
+### v0.5.0
+
+- 🖱 **新增悬浮模式并设为默认**：鼠标划过来源标题就地滑出该来源的模型，移开自动收起（延迟 260ms 防闪烁）。三模式循环变为 `悬浮 → 列表 → 面板`。
+- 🎛 **菜单底部新增设置条**：可直接切模式、调字号（`10 / 11 / 12 / 13`），`position: sticky; bottom: 0` 常驻；按钮的 `mousedown` / `click` 都 `stopPropagation`，不会触发宿主「点外部关闭」。
+- 💡 **新增用法提示行**：菜单底部显示 `双击来源标题可切换展开方式（当前：悬浮展开）`。
+- 🔁 **默认值迁移**：老用户 localStorage 里的旧默认 `panel` 一次性迁移到 `hover`，之后显式选 `panel` 则尊重。
+- 🐛 **修复来源标题样式长期完全失效**：内核 `section[role="group"]` 首个子元素是 `span[data-menu-group-start]`，而旧 CSS 用 `> div:first-child` 定位标题 → 永不匹配，导致折叠箭头、悬停高亮、「当前·模型名」徽标等 10 条规则全失效。改用内核显式属性钩子 `[data-menu-group-heading]`。
+- 🐛 **修复字号切换「时好时坏」**：`paneSignature()` 把插件自建节点算进签名 → 被误判为 pane 切换 → `resetView()` 清掉自建 DOM。改为签名排除自建节点 + 设置条幂等更新 + 字号点击只刷 `data-on`。
+- 🔤 **字号整体调小**：正文 15px → 11px、行高 22px → 16px、条目高 38px → 28px、箭头 12px → 10px，并接入 `--mf-fs`。
+- 📸 README 补 `docs/images/mode-hover.png` 与 `docs/images/mode-list.png` 两张效果图。
+
+### v0.4.8
+
+- 📦 **声明官方 DSH 兼容要求**：`engines.dsh` 与 `peerDependencies["@deepseek-ai/dsh"]` 均为 `>=0.1.7-rc.1`；不再硬绑具体内核版本号。
 
 ### v0.4.7
 
 - 🐛 **修复「子面板一闪而过」**：折叠隐藏按钮导致官方 `onBlur` 关闭整个菜单；改为隐藏前先把焦点移回 trigger。
 - 🐛 **修复「点击来源没反应」**：点击事件改为 `document` 级委托，不再依赖会被 React 换掉的节点。
 - 🐛 **修复「面板透明 / 文字看不清」**：支持 8 位 hex，把官方的半透明菜单表面色合成成不透明等价色，文字色按底色亮度确定对比度。
-- 🎨 **来源清单与子集清单统一**：字号 15px / 字重 600 / 行高 22px / 条目高 38px / 内距 8px 10px，配色与悬停共用同一套令牌。
+- 🎨 **来源清单与子集清单统一**：字号 / 字重 / 行高 / 条目高 / 内距与悬停共用同一套令牌。
 - 🎨 **勾选更醒目**：✓ 加大到 16px 加粗并用品牌色，选中项加品牌色左条。
 - 🛡 **单例守卫**：`dispose()` 摘净所有监听器与定时器，启动新实例前先拆旧实例，杜绝热重载堆叠。
 - 🧹 移除全部临时诊断代码（不再有任何日志上报或额外监听器）。
@@ -132,7 +151,7 @@ Since v0.3.0 the plugin ships two modes: **panel** (side panel, default) and **i
 
 - 子面板自适应主题；双模式切换。
 
-（更早版本见 GitHub Releases。）
+（更早版本见 [CHANGELOG.md](CHANGELOG.md) 与 GitHub Releases。）
 
 ---
 

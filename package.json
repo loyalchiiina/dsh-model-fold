@@ -1,7 +1,7 @@
 {
     "name": "dsh-model-fold",
-    "version": "0.5.0",
-    "description": "模型选择器按来源分组：悬停来源右侧滑出该来源模型子面板，当前模型与来源一眼可见，面板内可切换模式与字号。| Group the DSH model picker by provider: hover a source to slide its models out, see the active source and model at a glance, switch mode and font size right in the menu.",
+    "version": "0.5.1",
+    "description": "模型选择器按来源分组：默认悬停来源即在右侧滑出该来源的模型，当前模型与来源一眼可见；菜单底部设置条可切换 悬浮 / 面板 / 列表 三种模式并调字号。| Group the DSH model picker by provider: hovering a source slides its models out (default), the active source and model are visible at a glance, and an in-menu bar switches between hover / panel / inline modes and font size.",
     "type": "module",
     "main": "./lib/index.js",
     "exports": {
@@ -13,7 +13,9 @@
         "lib/*.js",
         "cordis.patch.yml",
         "README.md",
+        "CHANGELOG.md",
         "LICENSE",
+        "docs/modes.md",
         "docs/images/**"
     ],
     "license": "MIT",

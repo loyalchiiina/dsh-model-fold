@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.5.1 — 2026-10-19
+
+### 文档与代码对齐（无功能改动）
+
+逐条核对 README / docs/modes.md / package.json 与 `lib/client.js` 的真实行为，修正 6 处不符。
+
+| # | 位置 | 原写法 | 实际行为 | 取证 |
+|---|---|---|---|---|
+| 1 | README 功能亮点 · 三模式循环（中英） | `悬浮 → 面板 → 列表` / `hover → panel → inline` | **`悬浮 → 列表 → 面板`**（`hover → inline → panel`） | `lib/client.js` `toggleTitleMode()`：`var next = cur === "panel" ? "hover" : (cur === "hover" ? "inline" : "panel");` |
+| 2 | README 功能亮点 · 用法提示（中英） | 「菜单**顶部**有一行小字」 | 提示条 **append 在菜单末尾**，且设置条 `position: sticky; bottom: 0`，故它在**底部（设置条上方）** | `lib/client.js` `menuEl.appendChild(hint)`（同函数后段 `bar` 也 appendChild）；CSS `.dsh-mf-configbar{...position:sticky;bottom:0;}` |
+| 3 | README 适配内核表 | 内核 `2.0.15-next`、组件 `0.1.7-rc.2`、`engines.dsh: >=2.0.15-next` | 三项全错。本机 asar 实测 `dsh-desktop-next` = **2.0.18-next**、`dsh-client-ui-model-selection` = **0.2.1-alpha.2**；本包 `engines.dsh` 实为 **`>=0.1.7-rc.1`** | `app.asar` 读 `/package.json` 与 `/node_modules/@deepseek-ai/dsh-client-ui-model-selection/package.json`；本包 `package.json` `engines.dsh` |
+| 4 | README「回滚 / 模式说明」 | 「v0.3.0 起为**双模式**：默认 **panel**…可切换为 **inline**」 | v0.5.0 起是**三模式、默认 hover**（`getMode()` 无存储时返回 `"hover"`；老 `panel` 一次性迁移到 hover） | `lib/client.js` `getMode()` + `MODE_CHOICES = [['hover','悬浮'],['panel','面板'],['inline','列表']]` |
+| 5 | README「更新日志」 | 只列 v0.4.7、v0.4.2 | CHANGELOG 另有 v0.5.0、v0.4.8 两条未进 README | `grep -n '^## ' CHANGELOG.md` |
+| 6 | `docs/modes.md` | 标题「Modes: **panel vs inline**」，`## panel (default)`，全文只有两种模式 | 缺 v0.5.0 新增且现为默认的 **hover**，`panel` 也不再是默认 | 同 #4 取证 |
+
+### 同步内容
+
+- `package.json` `version` 0.5.0 → **0.5.1**；`description` 重写（明确「默认悬停」+「三模式 + 字号」），中英双语
+- `files` 补 `CHANGELOG.md` 与 `docs/modes.md`（此前 `docs/modes.md` 不在包内，但 README 有链接 → npm 用户点开 404）
+- `docs/modes.md` 重写为三模式（hover / panel / inline）+ 设置条一节，45 行 → 77 行
+- README 功能亮点、适配内核表、回滚说明、更新日志共 6 处修正
+
+### 教训
+
+「双击循环」这类状态机描述必须以代码里的三元表达式为准，不能凭 CHANGELOG 的措辞反推——v0.5.0 的 CHANGELOG 写的是 `悬浮 → 面板 → 列表`，而代码实际是 `panel → hover → inline → panel`。两者从 `hover` 出发的方向恰好相反。
+
 ## 0.5.0 - 新增悬浮模式、面板内设置条与字号调节；修复来源标题样式长期失效
 
 ### 新增 / Added
