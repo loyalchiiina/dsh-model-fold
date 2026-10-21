@@ -1,0 +1,18 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: tag must equal package.json version
+        run: |
+          V=$(node -p "require('./package.json').version")
+          [ "v$V" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} != v$V"; exit 1; }
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
