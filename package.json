@@ -1,7 +1,7 @@
 {
     "name": "dsh-model-fold",
-    "version": "0.5.1",
-    "description": "模型选择器按来源分组：默认悬停来源即在右侧滑出该来源的模型，当前模型与来源一眼可见；菜单底部设置条可切换 悬浮 / 面板 / 列表 三种模式并调字号。| Group the DSH model picker by provider: hovering a source slides its models out (default), the active source and model are visible at a glance, and an in-menu bar switches between hover / panel / inline modes and font size.",
+    "version": "1.0.0",
+    "description": "三级级联模型面板：来源 / 模型 / 强度三列并排，识图与思考强度一键开关，逐模型真实测活并持久化结果。| A three-column cascade model picker for DSH: provider → model → reasoning effort, one-click image/reasoning switches, real per-model availability probes with persisted results.",
     "type": "module",
     "main": "./lib/index.js",
     "exports": {
@@ -41,6 +41,10 @@
     "repository": {
         "type": "git",
         "url": "git+https://github.com/loyalchiiina/dsh-model-fold.git"
+    },
+    "homepage": "https://github.com/loyalchiiina/dsh-model-fold#readme",
+    "bugs": {
+        "url": "https://github.com/loyalchiiina/dsh-model-fold/issues"
     },
     "peerDependencies": {
         "@deepseek-ai/cordis": "^4.0.2",
