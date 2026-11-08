@@ -1,5 +1,10 @@
 # dsh-model-fold
 
+> **功能描述**：三级级联模型面板（来源 → 模型 → 思考强度），支持识图与思考强度一键开关、能力图标，以及逐模型真实测活并把结果持久化保存。适配 DSH 内核 0.2.2-rc.1。
+>
+> **English**: Three-column cascade model picker (provider to model to reasoning effort) with one-click image and reasoning switches, capability icons, and real per-model availability probes whose results persist across restarts. Adapts DSH kernel 0.2.2-rc.1.
+
+
 **给 DSH 的模型选择器换成「来源 / 模型 / 强度」三级级联面板。** 不再一条长列表翻到底，也不再打开官方模型菜单。
 
 **A three-column cascade model picker for DeepSeek Harness (DSH): provider → model → reasoning effort, with one-click capability switches and real per-model availability probes.**
