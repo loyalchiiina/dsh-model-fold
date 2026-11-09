@@ -1,0 +1,7 @@
+{
+  "name": "dsh-model-fold",
+  "meta": {
+    "title": "Model Fold",
+    "description": "v1.0.1 · Three-column cascade picker (provider → model → reasoning effort) with one-click image/reasoning switches and real per-model availability probes that persist their results."
+  }
+}

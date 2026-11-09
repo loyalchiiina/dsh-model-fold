@@ -1,57 +1,59 @@
 {
-    "name": "dsh-model-fold",
-    "version": "1.0.0",
-    "description": "三级级联模型面板：来源 / 模型 / 强度三列并排，识图与思考强度一键开关，逐模型真实测活并持久化结果。| A three-column cascade model picker for DSH: provider → model → reasoning effort, one-click image/reasoning switches, real per-model availability probes with persisted results.",
-    "type": "module",
-    "main": "./lib/index.js",
-    "exports": {
-        ".": "./lib/index.js",
-        "./client": "./lib/client.js",
-        "./package.json": "./package.json"
+  "name": "dsh-model-fold",
+  "version": "1.0.1",
+  "description": "三级级联模型面板：来源 / 模型 / 强度三列并排，识图与思考强度一键开关，逐模型真实测活并持久化结果。| A three-column cascade model picker for DSH: provider → model → reasoning effort, one-click image/reasoning switches, real per-model availability probes with persisted results.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "lib/*.js",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "docs/modes.md",
+    "docs/images/**",
+    "locale/*.json"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "model-selection",
+    "ui"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     },
-    "files": [
-        "lib/*.js",
-        "cordis.patch.yml",
-        "README.md",
-        "CHANGELOG.md",
-        "LICENSE",
-        "docs/modes.md",
-        "docs/images/**"
-    ],
-    "license": "MIT",
-    "keywords": [
-        "dsh-plugin",
-        "deepseek-harness",
-        "model-selection",
-        "ui"
-    ],
-    "dsh": {
-        "bundle": {
-            "patch": "./cordis.patch.yml"
-        },
-        "client": {
-            "platform": "web",
-            "inject": []
-        }
-    },
-    "engines": {
-        "node": ">=18",
-        "dsh": ">=0.1.7-rc.1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/loyalchiiina/dsh-model-fold.git"
-    },
-    "homepage": "https://github.com/loyalchiiina/dsh-model-fold#readme",
-    "bugs": {
-        "url": "https://github.com/loyalchiiina/dsh-model-fold/issues"
-    },
-    "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.2",
-        "@deepseek-ai/dsh": ">=0.1.7-rc.1"
-    },
-    "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.2",
-        "@deepseek-ai/dsh": ">=0.1.7-rc.1"
+    "client": {
+      "platform": "web",
+      "inject": []
     }
+  },
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.1.7-rc.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loyalchiiina/dsh-model-fold.git"
+  },
+  "homepage": "https://github.com/loyalchiiina/dsh-model-fold#readme",
+  "bugs": {
+    "url": "https://github.com/loyalchiiina/dsh-model-fold/issues"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh": ">=0.1.7-rc.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh": ">=0.1.7-rc.1"
+  }
 }
