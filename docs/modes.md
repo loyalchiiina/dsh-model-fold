@@ -22,5 +22,11 @@ The bottom bar has two rows:
 
 `测活` sends a one-token real request per model through the host route
 `/plugin/dsh-model-fold/probe`; results are persisted through
-`/plugin/dsh-model-fold/probe-results` in `~/.dsh/model-fold-probe.json`.
-`显示测活` only toggles the visibility of saved marks.
+`/plugin/dsh-model-fold/probe-results` in `~/.dsh/model-fold-probe.json` (the
+file carries `version: 2`; a snapshot with any other version is discarded and
+rebuilt). `显示测活` only toggles the visibility of saved marks.
+
+A 2xx status is not a green mark by itself: the response body is checked too,
+and an upstream error message in the body (request overloaded / rate limit /
+quota exhausted / invalid api key …) is reported as `code: OK_BODY_ERROR` and
+counted as unavailable.
