@@ -32,7 +32,7 @@
 | # | 判据 | 状态 | 证据 |
 |---|---|---|---|
 | J1 | 失败是**全量同质**失败，不是个别模型失败 | 现场观察（lead） | 同一来源 276 个模型一律红，悬停文案同一句 key 失效 → 指向共用凭据，不是模型能力差异 |
-| J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（写作时刻 `cordis.patch.yml` 第 4205 行，**行号会漂移，按 id 锚定**）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`C:\Users\Administrator\.dsh\.credentials.yaml:20`） |
+| J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（2026-11-11 实测 `cordis.patch.yml` 第 **3605** 行；**行号会漂移，按 `- id: agent2api` 锚定**——同刻 `agent2api:` 在 3603、`models:` 在 3611）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`C:\Users\Administrator\.dsh\.credentials.yaml:20`） |
 | J3 | 旧代码路径**必然**只回落到一把候选 | 读码可证 | `envKey \|\| input.apiKey` + profile 内 `apiKey:` 明文 0 命中 ⇒ 候选恒为旧 env 值；所有 provider 共用同一段逻辑，故必然全量失败 |
 | J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **待验证**（见 V4） | 内核语义：`refs` 不进进程环境，因此必须显式从托管文件或凭据服务取；这条是「为什么必须改架构」的依据，不是运行证据 |
 
