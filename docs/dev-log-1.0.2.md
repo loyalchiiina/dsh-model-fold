@@ -34,9 +34,10 @@
 | J1 | 失败是**全量同质**失败，不是个别模型失败 | 现场观察（lead） | 同一来源 276 个模型一律红，悬停文案同一句 key 失效 → 指向共用凭据，不是模型能力差异 |
 | J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（2026-11-11 实测 `cordis.patch.yml` 第 **3605** 行；**行号会漂移，按 `- id: agent2api` 锚定**——同刻 `agent2api:` 在 3603、`models:` 在 3611）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`C:\Users\Administrator\.dsh\.credentials.yaml:20`） |
 | J3 | 旧代码路径**必然**只回落到一把候选 | 读码可证 | `envKey \|\| input.apiKey` + profile 内 `apiKey:` 明文 0 命中 ⇒ 候选恒为旧 env 值；所有 provider 共用同一段逻辑，故必然全量失败 |
-| J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **待验证**（见 V4） | 内核语义：`refs` 不进进程环境，因此必须显式从托管文件或凭据服务取；这条是「为什么必须改架构」的依据，不是运行证据 |
+| J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **已验证通过**（2026-11-11 17:36 重启后实测） | 宿主 PID 203208 于 17:00:22 启动，晚于代码 mtime 14:50:27，日志 `desktop-next-2026-11-11.0.jsonl` 记 `host.kernel.dsh-model-fold: started (... probe routes)`；活体 `POST http://127.0.0.1:56958/plugin/dsh-model-fold/probe` 对 agent2api 网关模型 `qwen3.8-27b` 与 `glm-5.2` 双双返回 `{"ok":true,"status":200,"code":"OK","keySource":"credentials/file"}`（2253 ms / 578 ms）⇒ 同一网关同一模型由 401 转为 2xx，反证路径不成立；回归 `regress-1.0.2.mjs` 8 条中 7 PASS，唯一 FAIL 是 CodeArts 账号授权到期（400「登录授权已到期」/ 复跑 429「候选账号限额」），属上游账号态而非代码缺陷；持久化文件里仍存的 55 条 401 时间戳全部落在修复前（13:49 那批）且无 `keySource` 字段 |
 
-> 说明：J4 在写作时刻**尚未闭环**，所以本稿不声称「已修复验证通过」。落盘后按第六节逐项执行，J4 通过才可宣布修复成立。截至本文档更新时 J4 仍为**待验证**——宿主进程启动时刻早于本轮代码 mtime，实际跑的是旧模块；闭环前提：彻底退出 DSH 重启后再做一次测活，验收脚本 `E:\DSHskills-test\modelfold-probe\verify-1.0.2.ps1`。
+> 说明：J4 **已于 2026-11-11 17:36 闭环**（原稿写作时仍为待验证，因为宿主进程启动时刻早于本轮代码 mtime，实际跑的是旧模块）。闭环动作 = 彻底退出 DSH 重启（宿主 PID 203208 / 17:00:22）后再做一次测活：验收脚本 `E:\DSHskills-test\modelfold-probe\verify-1.0.2.ps1` 在 56958 端口确认 `keySource=credentials/file`，回归 `regress-1.0.2.mjs` 7/8 PASS，活体单点 probe 对 `qwen3.8-27b`、`glm-5.2` 均得 200/OK。**本稿据此宣布修复成立**。
+> 遗留（不属本修复范围）：① 持久化文件 `~/.dsh/model-fold-probe.json` 里尚有 55 条修复前写入的 401 记录（无 `keySource` 字段），面板若仍显示旧红叉，点一次「重新测活」即被覆盖；② `agent2api` 下 `codearts/*` 通道上游账号授权已到期（400「CodeArts 登录授权已到期…请重新完成网页登录」），属账号态，需用户重新网页登录；③ `profiles\xiufu` 与 `profiles\web` 两个 profile 的实装副本仍是 1.0.0（7548 B / 2026-11-08 / SHA `F60C22DBDDB07DB5`，无 `keySource`），desktop 不加载它们，如需一致须单独升级。
 
 ## 五、修复设计（六个要点）
 
