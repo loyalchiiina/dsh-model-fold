@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.2 — 2026-11-11
+
+### 修复：模型测活改用 DSH 凭据库的 key，不再被过期环境变量带偏
+
+- **根因**：`lib/index.js` 取 key 只走 `process.env[apiKeyEnv]`，而 DSH 模型页把 key 写进托管文件 `~/.dsh/.credentials.yaml` 的 `refs` 段。内核注释明确该托管文档不会被写进进程环境，于是插件在宿主里读到的是 `HKCU\Environment` 残留的旧变量（网关已吊销），`envKey || input.apiKey` 又因 env 非空而恒短路，客户端传来的 key 永远轮不到 → 整片 401，面板全红。
+- **修复**：key 来源改为按权威度排序的候选链 —— ① 凭据服务 `ctx.get("credentials").resolve(apiKeyEnv)`（托管文件优先于环境变量）；② 直读 `~/.dsh/.credentials.yaml` 的 `refs` 段（宿主凭据服务版本较老时的兜底）；③ 客户端显式传入的 `apiKey`；④ `process.env` 最后兜底。
+- **401 / 403 自动换下一把候选 key 重试**；其它状态码（如上游 502）不重试，避免把上游故障误判成 key 问题。
+- probe 响应新增 `keySource` 字段，客户端悬停文案追加 `· key:<来源>`，可直接看出这次测活用的是凭据库还是环境变量。
+- 面板上「所选 API Key 已失效」等文案一直是网关透传（宿主原样回传 `error.message`），不是本插件硬编码；本次照旧透传，只是不再由插件自己把旧 key 喂给网关。
+- **与本次修复无关的已知上游故障**：`agent2api` 的 `auto` 模型带正确 key 也返回 502（`Accio 上游错误：[402] unauthorized`），换具体模型即正常。这类失败不应计入 key 问题。
+- 生效方式：宿主端改动需**彻底退出 DSH 客户端再启动**（无热重载）；客户端 `lib/client.js` 改动用 Ctrl+Shift+R 硬刷新。
+
+## 1.0.1 — 2026-11-09
+
+### 插件市场元数据：新增 locale 显示名与描述
+
+- 新增 `locale/en.json`、`locale/zh.json`：显示名（Model Fold / 模型折叠）与一句话功能描述。
+- `package.json`：`exports` 增加 `./locale/*.json`；`files` 白名单增加 `locale/*.json`（缺这行 npm 包里就没有 locale 文件）。
+- 运行代码（`lib/client.js`、`lib/index.js`）无改动，行为与 1.0.0 完全一致。
+
 ## 1.0.0 — 2026-11-08
 
 ### 大更新：三级级联面板 + 真实测活 + 结果持久化
