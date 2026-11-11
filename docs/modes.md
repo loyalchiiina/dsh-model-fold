@@ -1,7 +1,13 @@
 # dsh-model-fold v1.0 UI notes
 
-v1.0 replaced the old hover/panel/inline menu modes with a single self-drawn
-three-column cascade:
+Since v1.0 the model capsule opens a single self-drawn three-column cascade. The
+official model menu entry is intercepted (`mousedown` / `click` capture) so it no
+longer opens — entry points are converged, but the legacy hover / panel / inline
+modes are still live code in `lib/client.js` (`getMode` / `setMode` /
+`toggleTitleMode`): they are dormant behind the intercepted menu, and
+double-clicking a provider title still switches back to them.
+
+The three columns are:
 
 - **来源** column: provider list with model counts and the active check mark.
 - **模型** column: models of the selected provider; the row shows capability

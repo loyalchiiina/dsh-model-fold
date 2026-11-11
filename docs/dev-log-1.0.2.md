@@ -6,7 +6,7 @@
 ## 一、版本与范围
 
 - 版本：`1.0.1` → `1.0.2`
-- 唯一改动点：宿主侧「测活（probe）取 key」的候选收集与选路逻辑，外加 401/403 自动换 key 重试、响应新增 `keySource` 字段；客户端只增加对该字段的消费（悬停显示来源）。
+- 本轮改动范围（宿主侧）：`probe` 取 key 的候选收集与选路（四来源 + env 来源降级）、候选链全空短路 `NO_CREDENTIAL`、401/403 与 400+关键字换 key 重试、`ERR_INVALID_CHAR` 跳候选、错误 message 脱敏与 300 字截断、响应新增 `keySource`；客户端只增加对该字段的消费（悬停显示来源）。代码终态 444 行，行号会漂移，以函数名／标识符锚定为准。
 - 本轮**不改**：三级级联面板布局、识图／思考强度开关、测活结果持久化格式（仍是 `~/.dsh/model-fold-probe.json`，顶层 `version: 1`）、locale 文案内容（仅版本前缀跟着升）。
 
 ## 二、背景（当时看得见的现象）
@@ -36,25 +36,25 @@
 | J3 | 旧代码路径**必然**只回落到一把候选 | 读码可证 | `envKey \|\| input.apiKey` + profile 内 `apiKey:` 明文 0 命中 ⇒ 候选恒为旧 env 值；所有 provider 共用同一段逻辑，故必然全量失败 |
 | J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **待验证**（见 V4） | 内核语义：`refs` 不进进程环境，因此必须显式从托管文件或凭据服务取；这条是「为什么必须改架构」的依据，不是运行证据 |
 
-> 说明：J4 在写作时刻**尚未闭环**，所以本稿不声称「已修复验证通过」。落盘后按第六节逐项执行，J4 通过才可宣布修复成立。
+> 说明：J4 在写作时刻**尚未闭环**，所以本稿不声称「已修复验证通过」。落盘后按第六节逐项执行，J4 通过才可宣布修复成立。截至本文档更新时 J4 仍为**待验证**——宿主进程启动时刻早于本轮代码 mtime，实际跑的是旧模块；闭环前提：彻底退出 DSH 重启后再做一次测活，验收脚本 `E:\DSHskills-test\modelfold-probe\verify-1.0.2.ps1`。
 
 ## 五、修复设计（六个要点）
 
-1. **凭据服务优先**：`resolveFromCredentialsService(ctx, ref)` 走 `ctx.get("credentials")`（写作时刻 `lib/index.js:118`）→ `await service.resolve(ref)`（`lib/index.js:129`），服务不存在或抛错时静默返回 `undefined`，不中断探活。
-2. **直读托管文件兜底**：`resolveFromCredentialsDocument(ref)` 解析 `<DSH_HOME>/.credentials.yaml` 的 `refs:` 段，只取明文；`enc1:` / `${` / `{{` 前缀与空值一律跳过并返回 `undefined`（`lib/index.js:157-169`），命中时返回 `source: "credentials/file-raw"`；读文件或解析异常整体 `catch` 返回 `undefined`（`:172-175`），绝不抛错。
-3. **候选合并、去重、按权威排序**：`collectKeyCandidates`（`lib/index.js:180-201`）的顺序是
-   `credentials service` → `credentials/file-raw` → `request`（客户端显式传入的 `apiKey`）→ `process-env` → 空候选 `{ value: "", source: "none" }`；
+1. **凭据服务优先**：`resolveFromCredentialsService(ctx, ref)` 走 `ctx.get("credentials")` 取服务 → `await service.resolve(ref)`（终态 `lib/index.js:133-147`；行号会漂移，以函数名锚定），服务不存在或抛错时静默返回 `undefined`，不中断探活。
+2. **直读托管文件兜底**：`resolveFromCredentialsDocument(ref)` 解析 `<DSH_HOME>/.credentials.yaml` 的 `refs:` 段，只取明文；`enc1:` / `${` / `{{` 前缀与空值一律跳过并返回 `undefined`（终态 `lib/index.js:151-186`，跳过逻辑在 `:177`），命中时返回 `source: credentials/file-raw`；读文件或解析异常整体 `catch` 返回 `undefined`（`:178-186`），绝不抛错。
+3. **候选合并、去重、按权威排序**：`collectKeyCandidates`（终态 `lib/index.js:191-231`；行号会漂移，以函数名锚定）的实际顺序是
+   `credentials service`（仅当 `resolved.source` **不含** `env`）→ `credentials/file-raw`（**仅当宿主凭据服务不存在**，`lib/index.js:215` 的 `if (!serviceAvailable)`）→ `request`（客户端显式传入的 `apiKey`，`:226`）→ `envSourced`（凭据服务返回且 `source` 含 `env` 的值，`:209` 暂存、`:227` 才加入）→ `process-env`（`:228`）→ 全空时的空候选（`value` 为空串、`source` 为 `none`，`:229`）；
    同一把 key 只保留首次出现（`seen` 集合去重），保证重试不会拿同一把 key 打两遍。
-4. **401/403 自动换 key 重试**：`handleProbe` 内按候选顺序逐个尝试，只有 `attempt === 401 || attempt === 403`（`lib/index.js:265`）才换下一把；网络错误（`status 0`）直接返回 `code: "NETWORK"`，**不换 key 空转**。
-5. **响应新增 `keySource`**：成功与失败都回传本次实际使用的来源（`lib/index.js:274`、`:279`、`:298`）；客户端在 `lib/client.js:1919`（`setProbeMark`）与 `lib/client.js:1926` 把它拼进悬停文案（` · key:<source>`），`lib/client.js:1994` 仍照旧把 `apiKey` 传给宿主。
-6. **环境变量降级为最后兜底**：`add(process.env[envName], "process-env")`（`lib/index.js:198`）排在最后，从结构上消灭「旧 env 挡住真 key」的短路。
+4. **401/403 自动换 key 重试**：`handleProbe` 内按候选顺序逐个尝试，只有 `attempt === 401 || attempt === 403`，以及 `attempt === 400` 且响应体命中 `/api[\s_-]?key|unauthoriz|invalid.{0,12}(key|token|api)/i`（终态 `lib/index.js:325-329`）才换下一把；候选凭据含 HTTP 头非法字符时 Node 抛 `ERR_INVALID_CHAR`，该候选按失败处理、还有下一把就 `continue`（`:317`）；其它状态码与网络错误（`status 0`）直接 break，**不换 key 空转**。
+5. **响应新增 `keySource`**：成功 / HTTP 失败（终态 `lib/index.js:377-383`）、`NETWORK`（`:353`）、无候选的 `EXCEPTION`（`:333-339`）、异常兜底（`:395`）与 `NO_CREDENTIAL`（`:294`）都回传本次实际使用的来源；客户端在 `lib/client.js:1919`（`setProbeMark`）与 `:1926` 把它拼进悬停文案（` · key:<source>`，来源为 `none` 时不拼），`lib/client.js:1994` 仍照旧把 `apiKey` 传给宿主。
+6. **环境变量降级**：`add(process.env[envName], 来源标记 process-env)`（终态 `lib/index.js:228`）排在最后，其前一层是 `envSourced`（`:227`，仅当凭据服务返回的来源标记含 `env` 时才存在），从结构上消灭「旧 env 挡住真 key」的短路。
 
-安全边界：只回传来源**名称**，不回传 key 值；托管文件里 `enc1:` 等占位值视为不可用，不尝试解码（超出本轮范围）。
+安全边界：响应只回传来源**名称**；错误 message 在回传与落盘前主动脱敏 —— 候选值整体替换为 `[redacted]`（`:347-352`、`:370-375`、`:389-394`）、`sk-` 前缀长串按正则替换、并截断到 300 字，因此 key 值不会进 `~/.dsh/model-fold-probe.json`。托管文件里 `enc1:` 等占位值视为不可用，不尝试解码（超出本轮范围）。
 
 ## 六、验证计划（发版前逐项过，全绿才算完成）
 
 - **V1 挂载与版本**：`node --check lib/index.js` + `node --check lib/client.js`；彻底退出 DSH 客户端再启动；启动日志出现 `host half mounted (v1.0.2)`。
-- **V2 `keySource` 真实性**：同一 provider 连续两次测活，`keySource` 应稳定为凭据服务来源；临时让凭据服务不可用后应降级为 `credentials/file-raw`；只有前两者都拿不到时才允许出现 `request` 或 `process-env`。
+- **V2 `keySource` 真实性**：同一 provider 连续两次测活，`keySource` 应稳定为凭据服务来源；临时让凭据服务不可用后才降级为 `credentials/file-raw`；例外：凭据服务存在但 `resolve` 返回空（如托管值是 `enc1:` 占位）时不读托管文件、直接落到 `request`，只有服务整体不可用才走文件兜底。
 - **V3 核心回归（本次缺陷的靶心）**：**不动**用户级 `AGENT2API_API_KEY`（保持 39 字符旧值），直接测活 —— `keySource` 不得为 `process-env`，结果应为绿。这一条不过，等于缺陷没修。
 - **V4 全量与抽样**：agent2api 全量 276 模型跑一遍，统计绿/红；另抽至少 3 个此前为红的模型单独复测。**统计时把 `auto` 路由组模型单列**（见第七节），不能算进本次失败的分子。
 - **V5 换 key 重试**：仅在本机临时把一把无效 key 排在候选最前（不入库），确认 401 后自动换下一把、最终返回绿且 `keySource` 指向真 key 来源。
@@ -77,5 +77,5 @@
 
 1. 取 key 这类「外部真相」一律写成**候选列表 + 按权威排序 + 去重 + 逐个试**，禁止 `a || b`：`||` 会把「有值但无效」当成「成功取到」，错误被推迟到 401 才暴露，且现场完全看不出用错了来源。
 2. 每个失败响应都应带上「我用了哪个来源」（`keySource`），否则只能靠猜。
-3. 文档只写接口契约、不写凭据来源，会导致取路逻辑改了以后**没有任何文档能证明行为**（本版 README 就是这种状态，见同批产出的一致性盘点）。
+3. 文档只写接口契约、不写凭据来源，会导致取路逻辑改了以后**没有任何文档能证明行为**（1.0.2 的 README 曾是这个状态，已在发布前按核对报告补写候选链、重试、额度与上限、`keySource`）。
 4. 写文档引用 `cordis.patch.yml` 时不要记行号 —— 它会被设置页重写，锚点必须是 `id:`。

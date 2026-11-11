@@ -6,10 +6,15 @@
 
 - **根因**：`lib/index.js` 取 key 只走 `process.env[apiKeyEnv]`，而 DSH 模型页把 key 写进托管文件 `~/.dsh/.credentials.yaml` 的 `refs` 段。内核注释明确该托管文档不会被写进进程环境，于是插件在宿主里读到的是 `HKCU\Environment` 残留的旧变量（网关已吊销），`envKey || input.apiKey` 又因 env 非空而恒短路，客户端传来的 key 永远轮不到 → 整片 401，面板全红。
 - **修复**：key 来源改为按权威度排序的候选链 —— ① 凭据服务 `ctx.get("credentials").resolve(apiKeyEnv)`（托管文件优先于环境变量）；② 直读 `~/.dsh/.credentials.yaml` 的 `refs` 段（宿主凭据服务版本较老时的兜底）；③ 客户端显式传入的 `apiKey`；④ `process.env` 最后兜底。
-- **401 / 403 自动换下一把候选 key 重试**；其它状态码（如上游 502）不重试，避免把上游故障误判成 key 问题。
-- probe 响应新增 `keySource` 字段，客户端悬停文案追加 `· key:<来源>`，可直接看出这次测活用的是凭据库还是环境变量。
+- **401 / 403 自动换下一把候选 key 重试**；400 只有响应体命中 key 关键字（正则 `/api[\s_-]?key|unauthoriz|invalid.{0,12}(key|token|api)/i`）才算 key 被拒并换下一把；候选 key 含 HTTP 头不允许的字符（Node 抛 `ERR_INVALID_CHAR`，响应里 `code` 为 `INVALID_KEY_CHAR`）也按该候选失败处理，还有下一把就继续换；其它状态码（如上游 502）与网络错误不重试，避免把上游故障误判成 key 问题。
+- **候选链全空时不发任何请求**：只有一项且值为空（凭据库、请求、环境变量都为空）时直接返回 HTTP 200 + `code` 为 `NO_CREDENTIAL`、`keySource` 为 `none`，不打匿名请求——否则网关回 401，面板会把「插件自己没拿到 key」显示成「你的 key 被拒绝」。
+- probe 响应新增 `keySource` 字段，客户端悬停文案追加 `· key:<来源>`，可直接看出这次测活用的是凭据库（`credentials/*`，含直读托管文件的 `credentials/file-raw`）、客户端传入（`request`）还是环境变量（`process-env`）；一把都没取到时为 `none`（此时请求不带 key，悬停不显示该段）。四个出口（成功 / HTTP 失败 / NETWORK / 异常兜底）都带该字段；**本版异常兜底返回 HTTP 200 + `code` 为 `EXCEPTION`**（早期实现返回 500 且不带该字段），别把状态码当恒定契约。
 - 面板上「所选 API Key 已失效」等文案一直是网关透传（宿主原样回传 `error.message`），不是本插件硬编码；本次照旧透传，只是不再由插件自己把旧 key 喂给网关。
-- **与本次修复无关的已知上游故障**：`agent2api` 的 `auto` 模型带正确 key 也返回 502（`Accio 上游错误：[402] unauthorized`），换具体模型即正常。这类失败不应计入 key 问题。
+- **`auto` 只作背景，不计入本版判断**：网关 `GET /v1/models` 返回 276 条，其中含 `auto`（`owned_by=accio`，稳定 502 `Accio 上游错误：[402] unauthorized`）；但 profile 的 `providers.agent2api.models` 只列 **224 条**（首项 `qwen3.8-27b`），**不含 `auto`** —— 测活遍历的是 profile 的 224 条，根本碰不到它。先前把 `auto` 单列成一条已知上游故障并列进本版说明，会让读者去面板里找一个永远不会出现的模型，现予纠正。
+- **期望管理：修好 key 不等于全绿**。另一路独立实测（不是本插件自测结果，且是当下上限）显示：有效 key 下 desktop profile 的 agent2api 224 条里可用最多 **74 条（约 33%）**。仍红的 150 条拆开看 —— **22 条是模型本身不可用**（1 条 502「模型不可见或无访问权限」，21 条 45 s 复测无响应）；**128 条是网关账号池被限流**（115 条 503「所有启用中的账号都被限制器拦下」，13 条 429「所有候选账号对模型 X 均已限额或禁用」，均带恢复时间）。这 128 条既不是插件缺陷，也不该把模型从列表里删掉：额度恢复后它们会自己变绿。
+- **xiufu / web 两个 profile 仍装 1.0.0**（与 npm 1.0.1 的代码逐字节相同），在那两处点测活仍会整屏红叉，**与本缺陷无关，勿据此判回归**；desktop profile 才是本版修复的验证环境。
+- **文档一致性修正**：按 1.0.2 核对报告修了 `README.md` / `docs/modes.md` 的表述 —— 兼容声明改回 0.x 内核线、测活说明补写凭据库候选链与 401/403 换 key 重试（并标明同一模型最多 4 次额度）、补 `openai-responses` 方言的 `max_output_tokens`、面板宽度改为最宽 `min(92vw, 640px)`、补请求体 16 KB / 结果集 1 MB 上限、安装命令标注仅适用非 desktop profile、`docs/modes.md` 不再声称旧 hover/panel/inline 三模式已被移除（实为入口收敛 + 休眠但仍可双击来源标题切回）。
+- 维护提醒：`locale/zh.json` / `locale/en.json` 的 `meta.description` 带 `vX.Y.Z · ` 前缀，**每升一版必须同步改这两处**（版本以 `package.json` 与本文件为准，漏改会让市场描述失实）。
 - 生效方式：宿主端改动需**彻底退出 DSH 客户端再启动**（无热重载）；客户端 `lib/client.js` 改动用 Ctrl+Shift+R 硬刷新。
 
 ## 1.0.1 — 2026-11-09
