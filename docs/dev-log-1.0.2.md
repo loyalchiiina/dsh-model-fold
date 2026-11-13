@@ -13,7 +13,7 @@
 
 - 打开模型面板点「测活」，当前来源下的模型**整屏全是红 ✕**，悬停文案统一是「所选 API Key 已失效」；不是个别模型失败，是同一来源全量失败。
 - 探活走宿主侧路由 `POST /plugin/dsh-model-fold/probe`（见 `lib/index.js` 顶部注释与 `handleProbe`）。
-- DSH 模型页保存的 key 落在托管凭据文件 `C:\Users\Administrator\.dsh\.credentials.yaml`（实测 1920 B / 48 行 / 2026-11-11 12:56），结构是 `version:` + `refs:`（20 个以环境变量名命名的条目，其中含 `AGENT2API_API_KEY`）+ `records:`。
+- DSH 模型页保存的 key 落在托管凭据文件 `%USERPROFILE%\.dsh\.credentials.yaml`（实测 1920 B / 48 行 / 2026-11-11 12:56），结构是 `version:` + `refs:`（20 个以环境变量名命名的条目，其中含 `AGENT2API_API_KEY`）+ `records:`。
 - 同一名字的环境变量在本机也确实存在：用户级 `AGENT2API_API_KEY` 实测长度 **39 字符**，是 2026-10-30 留下的旧值，网关侧已失效（`[Environment]::GetEnvironmentVariable(...,'User')` 实测；Process 作用域为空）。
 
 ## 三、根因（三层，缺一不可）
@@ -22,7 +22,7 @@
    `const envKey = input.apiKeyEnv ? process.env[String(input.apiKeyEnv)] : "";`
    `const apiKey = envKey || input.apiKey || "";`
    （该文件已被 1.0.2 重写覆盖，历史行号为 `lib/index.js:162-163`，请求头在 `lib/index.js:166` 的 `headersOf(api, apiKey)` 处组装 —— 仅作历史证据，勿在当前文件按此定位。）
-2. **`||` 短路，把「有值但无效」当成「已经取到」**。只要 `process.env[apiKeyEnv]` 非空（哪怕是一把失效的旧 key），`input.apiKey` 就**永远不会被采用**；而 `input.apiKey` 本身也恒为空 —— 实测 profile 配置 `C:\Users\Administrator\.dsh\profiles\desktop\cordis.patch.yml` 里 `^\s*apiKey\s*:` **0 命中**（20 个 provider 只写 `apiKeyEnv`，key 值全在托管文件里）。于是候选集合实际上只有「那把 39 字符旧 key」这一把。
+2. **`||` 短路，把「有值但无效」当成「已经取到」**。只要 `process.env[apiKeyEnv]` 非空（哪怕是一把失效的旧 key），`input.apiKey` 就**永远不会被采用**；而 `input.apiKey` 本身也恒为空 —— 实测 profile 配置 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml` 里 `^\s*apiKey\s*:` **0 命中**（20 个 provider 只写 `apiKeyEnv`，key 值全在托管文件里）。于是候选集合实际上只有「那把 39 字符旧 key」这一把。
 3. **真正的 key 从来没进过进程环境**。DSH 模型页只写托管文件的 `refs:` 段，内核注释明确说明这些 ref **不会 materialize into the process environment**；插件按 `process.env[...]` 去问，问到的只能是历史遗留值 → 每个模型 HTTP 401 → 面板整屏「所选 API Key 已失效」。
 
 一句话：**不是 key 错了，是插件问错了地方，而问到的旧值还被 `||` 锁死，后面正确的来源连尝试的机会都没有。**
@@ -32,7 +32,7 @@
 | # | 判据 | 状态 | 证据 |
 |---|---|---|---|
 | J1 | 失败是**全量同质**失败，不是个别模型失败 | 现场观察（lead） | 同一来源 276 个模型一律红，悬停文案同一句 key 失效 → 指向共用凭据，不是模型能力差异 |
-| J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（2026-11-11 实测 `cordis.patch.yml` 第 **3605** 行；**行号会漂移，按 `- id: agent2api` 锚定**——同刻 `agent2api:` 在 3603、`models:` 在 3611）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`C:\Users\Administrator\.dsh\.credentials.yaml:20`） |
+| J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（2026-11-11 实测 `cordis.patch.yml` 第 **3605** 行；**行号会漂移，按 `- id: agent2api` 锚定**——同刻 `agent2api:` 在 3603、`models:` 在 3611）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`%USERPROFILE%\.dsh\.credentials.yaml:20`） |
 | J3 | 旧代码路径**必然**只回落到一把候选 | 读码可证 | `envKey \|\| input.apiKey` + profile 内 `apiKey:` 明文 0 命中 ⇒ 候选恒为旧 env 值；所有 provider 共用同一段逻辑，故必然全量失败 |
 | J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **已验证通过**（2026-11-11 17:36 重启后实测） | 宿主 PID 203208 于 17:00:22 启动，晚于代码 mtime 14:50:27，日志 `desktop-next-2026-11-11.0.jsonl` 记 `host.kernel.dsh-model-fold: started (... probe routes)`；活体 `POST http://127.0.0.1:56958/plugin/dsh-model-fold/probe` 对 agent2api 网关模型 `qwen3.8-27b` 与 `glm-5.2` 双双返回 `{"ok":true,"status":200,"code":"OK","keySource":"credentials/file"}`（2253 ms / 578 ms）⇒ 同一网关同一模型由 401 转为 2xx，反证路径不成立；回归 `regress-1.0.2.mjs` 8 条中 7 PASS，唯一 FAIL 是 CodeArts 账号授权到期（400「登录授权已到期」/ 复跑 429「候选账号限额」），属上游账号态而非代码缺陷；持久化文件里仍存的 55 条 401 时间戳全部落在修复前（13:49 那批）且无 `keySource` 字段 |
 
@@ -65,7 +65,7 @@
 
 - `auto` 路由组模型（`id` 形如 `auto/auto`，`name: Auto · routing group`）**即使带正确 key 也必然 502**，响应体为 `Accio 上游错误：[402] unauthorized`；对照组 `deepseek-v4.1-flash-1017` 正常。
 - 该现象属**上游网关/通道问题**，与插件取 key 逻辑无关：本次不修，也不计入 V4 的失败数。
-- ⚠ 锚点提醒：`C:\Users\Administrator\.dsh\profiles\desktop\cordis.patch.yml` **会被 DSH 设置页反向改写**，本次会话内实测总行数从 8143 漂到 8756、`auto/auto` 从第 565 行漂到第 587 行；早期清单里写的「第 3628 行」在写作时刻已指向 agent2api 块的首个模型 `- id: qwen3.8-27b`，**不再是 auto**。引用该文件一律按 `id:` 锚定，禁止按行号。
+- ⚠ 锚点提醒：`%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml` **会被 DSH 设置页反向改写**，本次会话内实测总行数从 8143 漂到 8756、`auto/auto` 从第 565 行漂到第 587 行；早期清单里写的「第 3628 行」在写作时刻已指向 agent2api 块的首个模型 `- id: qwen3.8-27b`，**不再是 auto**。引用该文件一律按 `id:` 锚定，禁止按行号。
 
 ## 八、生效方式（改完别只说「重启」）
 

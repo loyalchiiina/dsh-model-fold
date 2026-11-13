@@ -1,12 +1,13 @@
 {
   "name": "dsh-model-fold",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "三级级联模型面板：来源 / 模型 / 强度三列并排，识图与思考强度一键开关，逐模型真实测活并持久化结果。| A three-column cascade model picker for DSH: provider → model → reasoning effort, one-click image/reasoning switches, real per-model availability probes with persisted results.",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./icon": "./icon.svg",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
@@ -16,6 +17,7 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
+    "icon.svg",
     "docs/modes.md",
     "docs/images/**",
     "locale/*.json",
@@ -29,6 +31,11 @@
     "ui"
   ],
   "dsh": {
+    "labels": [],
+    "capabilities": [
+      "network:egress",
+      "credentials:read"
+    ],
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
