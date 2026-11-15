@@ -7,7 +7,7 @@
 
 - 版本：`1.0.1` → `1.0.2`
 - 本轮改动范围（宿主侧）：`probe` 取 key 的候选收集与选路（四来源 + env 来源降级）、候选链全空短路 `NO_CREDENTIAL`、401/403 与 400+关键字换 key 重试、`ERR_INVALID_CHAR` 跳候选、错误 message 脱敏与 300 字截断、响应新增 `keySource`；客户端只增加对该字段的消费（悬停显示来源）。代码终态 444 行，行号会漂移，以函数名／标识符锚定为准。
-- 本轮**不改**：三级级联面板布局、识图／思考强度开关、测活结果持久化格式（仍是 `~/.dsh/model-fold-probe.json`，顶层 `version: 1`）、locale 文案内容（仅版本前缀跟着升）。
+- 本轮**不改**：三级级联面板布局、识图／思考强度开关、测活结果持久化格式（仍是 `<用户目录>/.dsh/model-fold-probe.json`，顶层 `version: 1`）、locale 文案内容（仅版本前缀跟着升）。
 
 ## 二、背景（当时看得见的现象）
 
@@ -34,10 +34,10 @@
 | J1 | 失败是**全量同质**失败，不是个别模型失败 | 现场观察（lead） | 同一来源 276 个模型一律红，悬停文案同一句 key 失效 → 指向共用凭据，不是模型能力差异 |
 | J2 | **名字对得上、来源对不上** | 已实测 | profile 里 `apiKeyEnv: AGENT2API_API_KEY`（2026-11-11 实测 `cordis.patch.yml` 第 **3605** 行；**行号会漂移，按 `- id: agent2api` 锚定**——同刻 `agent2api:` 在 3603、`models:` 在 3611）；用户级同名变量长度 39（10-30 旧值）；托管文件 `refs:` 里同名条目存在（`%USERPROFILE%\.dsh\.credentials.yaml:20`） |
 | J3 | 旧代码路径**必然**只回落到一把候选 | 读码可证 | `envKey \|\| input.apiKey` + profile 内 `apiKey:` 明文 0 命中 ⇒ 候选恒为旧 env 值；所有 provider 共用同一段逻辑，故必然全量失败 |
-| J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **已验证通过**（2026-11-11 17:36 重启后实测） | 宿主 PID 203208 于 17:00:22 启动，晚于代码 mtime 14:50:27，日志 `desktop-next-2026-11-11.0.jsonl` 记 `host.kernel.dsh-model-fold: started (... probe routes)`；活体 `POST http://127.0.0.1:56958/plugin/dsh-model-fold/probe` 对 agent2api 网关模型 `qwen3.8-27b` 与 `glm-5.2` 双双返回 `{"ok":true,"status":200,"code":"OK","keySource":"credentials/file"}`（2253 ms / 578 ms）⇒ 同一网关同一模型由 401 转为 2xx，反证路径不成立；回归 `regress-1.0.2.mjs` 8 条中 7 PASS，唯一 FAIL 是 CodeArts 账号授权到期（400「登录授权已到期」/ 复跑 429「候选账号限额」），属上游账号态而非代码缺陷；持久化文件里仍存的 55 条 401 时间戳全部落在修复前（13:49 那批）且无 `keySource` 字段 |
+| J4 | 换成有效 key 后同一模型转为 2xx（反证：若仍 401，则另有 baseURL/网关问题，本结论不成立） | **已验证通过**（2026-11-11 17:36 重启后实测） | 宿主 PID 203208 于 17:00:22 启动，晚于代码 mtime 14:50:27，日志 `desktop-next-2026-11-11.0.jsonl` 记 `host.kernel.dsh-model-fold: started (... probe routes)`；活体 `POST http://127.0.0.1:<端口>/plugin/dsh-model-fold/probe` 对 agent2api 网关模型 `qwen3.8-27b` 与 `glm-5.2` 双双返回 `{"ok":true,"status":200,"code":"OK","keySource":"credentials/file"}`（2253 ms / 578 ms）⇒ 同一网关同一模型由 401 转为 2xx，反证路径不成立；回归 `regress-1.0.2.mjs` 8 条中 7 PASS，唯一 FAIL 是 CodeArts 账号授权到期（400「登录授权已到期」/ 复跑 429「候选账号限额」），属上游账号态而非代码缺陷；持久化文件里仍存的 55 条 401 时间戳全部落在修复前（13:49 那批）且无 `keySource` 字段 |
 
-> 说明：J4 **已于 2026-11-11 17:36 闭环**（原稿写作时仍为待验证，因为宿主进程启动时刻早于本轮代码 mtime，实际跑的是旧模块）。闭环动作 = 彻底退出 DSH 重启（宿主 PID 203208 / 17:00:22）后再做一次测活：验收脚本 `E:\DSHskills-test\modelfold-probe\verify-1.0.2.ps1` 在 56958 端口确认 `keySource=credentials/file`，回归 `regress-1.0.2.mjs` 7/8 PASS，活体单点 probe 对 `qwen3.8-27b`、`glm-5.2` 均得 200/OK。**本稿据此宣布修复成立**。
-> 遗留（不属本修复范围）：① 持久化文件 `~/.dsh/model-fold-probe.json` 里尚有 55 条修复前写入的 401 记录（无 `keySource` 字段），面板若仍显示旧红叉，点一次「重新测活」即被覆盖；② `agent2api` 下 `codearts/*` 通道上游账号授权已到期（400「CodeArts 登录授权已到期…请重新完成网页登录」），属账号态，需用户重新网页登录；③ `profiles\xiufu` 与 `profiles\web` 两个 profile 的实装副本仍是 1.0.0（7548 B / 2026-11-08 / SHA `F60C22DBDDB07DB5`，无 `keySource`），desktop 不加载它们，如需一致须单独升级。
+> 说明：J4 **已于 2026-11-11 17:36 闭环**（原稿写作时仍为待验证，因为宿主进程启动时刻早于本轮代码 mtime，实际跑的是旧模块）。闭环动作 = 彻底退出 DSH 重启（宿主 PID 203208 / 17:00:22）后再做一次测活：验收脚本 `verify-1.0.2.ps1（测试脚本）` 在 56958 端口确认 `keySource=credentials/file`，回归 `regress-1.0.2.mjs` 7/8 PASS，活体单点 probe 对 `qwen3.8-27b`、`glm-5.2` 均得 200/OK。**本稿据此宣布修复成立**。
+> 遗留（不属本修复范围）：① 持久化文件 `<用户目录>/.dsh/model-fold-probe.json` 里尚有 55 条修复前写入的 401 记录（无 `keySource` 字段），面板若仍显示旧红叉，点一次「重新测活」即被覆盖；② `agent2api` 下 `codearts/*` 通道上游账号授权已到期（400「CodeArts 登录授权已到期…请重新完成网页登录」），属账号态，需用户重新网页登录；③ `profiles\xiufu` 与 `profiles\web` 两个 profile 的实装副本仍是 1.0.0（7548 B / 2026-11-08 / SHA `F60C22DBDDB07DB5`，无 `keySource`），desktop 不加载它们，如需一致须单独升级。
 
 ## 五、修复设计（六个要点）
 
@@ -50,7 +50,7 @@
 5. **响应新增 `keySource`**：成功 / HTTP 失败（终态 `lib/index.js:377-383`）、`NETWORK`（`:353`）、无候选的 `EXCEPTION`（`:333-339`）、异常兜底（`:395`）与 `NO_CREDENTIAL`（`:294`）都回传本次实际使用的来源；客户端在 `lib/client.js:1919`（`setProbeMark`）与 `:1926` 把它拼进悬停文案（` · key:<source>`，来源为 `none` 时不拼），`lib/client.js:1994` 仍照旧把 `apiKey` 传给宿主。
 6. **环境变量降级**：`add(process.env[envName], 来源标记 process-env)`（终态 `lib/index.js:228`）排在最后，其前一层是 `envSourced`（`:227`，仅当凭据服务返回的来源标记含 `env` 时才存在），从结构上消灭「旧 env 挡住真 key」的短路。
 
-安全边界：响应只回传来源**名称**；错误 message 在回传与落盘前主动脱敏 —— 候选值整体替换为 `[redacted]`（`:347-352`、`:370-375`、`:389-394`）、`sk-` 前缀长串按正则替换、并截断到 300 字，因此 key 值不会进 `~/.dsh/model-fold-probe.json`。托管文件里 `enc1:` 等占位值视为不可用，不尝试解码（超出本轮范围）。
+安全边界：响应只回传来源**名称**；错误 message 在回传与落盘前主动脱敏 —— 候选值整体替换为 `[redacted]`（`:347-352`、`:370-375`、`:389-394`）、`sk-` 前缀长串按正则替换、并截断到 300 字，因此 key 值不会进 `<用户目录>/.dsh/model-fold-probe.json`。托管文件里 `enc1:` 等占位值视为不可用，不尝试解码（超出本轮范围）。
 
 ## 六、验证计划（发版前逐项过，全绿才算完成）
 

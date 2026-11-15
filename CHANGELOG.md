@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0.9 (2026-11-15) — 1.0.8 实测未生效：补「晚到的官方菜单」与「点错按钮」两个漏洞
+
+- **现象**：1.0.8 装好后实测「重载后还是一样」——第一次点开自绘级联，第二次点仍然冒出官方旧面板。
+- **已排除**：不是没加载。直接 `curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js&rev=…"` 取页面实际执行的 bundle，HTTP 200、182384 B、含 `dismissOfficialModelMenu` / `canOwnModelMenu` / `MF_VERSION=1.0.8` —— 新代码确实在跑，问题在逻辑。
+- **漏洞①（时序）**：1.0.8 只在 `openCascade` 里**同步**调一次关闭，而官方菜单是 React 异步渲染 —— 此刻 `aria-expanded` 还是 `"false"`，判据不成立直接跳过；官方菜单随后才渲染出来，只剩 CSS 预隐藏，600/1000ms 一到期就显形。
+- **漏洞②（找错按钮）**：`dismissOfficialModelMenu` 内部用 `findModelTrigger()` 自己找按钮，未选模型时它返回 composer 里第一个 `button[aria-haspopup="menu"]`（可能是附件/工具钮），`click()` 点错对象 → 官方菜单永远关不掉。现在改为优先使用调用方传进来的真实触发按钮（`trigger` 参数）。
+- **漏洞③（真凶 · 兜底误伤）**：`onDocCascadeClick` 里 v1.0.7 留下的「防死点兜底」写法是 `toggleCascade(trg)` 之后统一判断「面板没开 → 补点官方按钮」。而**第二次点击的正常语义就是「收起面板」**，于是被误判成「面板打不开」，兜底去点触发钮 → **官方旧菜单当场冒出来**。修复：先记 `_wasOpen`，toggle 后记 `_opened`；只有 `!_wasOpen && !_opened && !canOwnModelMenu(trg)`（本来没开、点完也没开、且确实接管不了）才回退官方菜单，用户主动收起时什么都不做。
+- **修复**：① `dismissOfficialModelMenu(trigger)` 在 0/60/160/320/600ms 五个时间点复查，只在 `aria-expanded === "true"`（确认开着）时才动手补点关闭（摘/挂本拦截监听防重入；不用合成 Escape，避免误伤本插件侧边面板的 keydown 关闭）；② 预隐藏属性 `data-mf-model-opening` 改为「级联开着就不撤」，`onDocModelTriggerDown` 里 600ms / 1000ms 两处撤除都加了 `cascadeEl.classList.contains("dsh-mf-open")` 守卫；③ `closeCascade(trigger)` / `toggleCascade(trigger)` 一路把真实按钮传下去。
+- **生效方式更正**（重要）：桌面端**没有注册任何 reload / forceReload 加速键**（`app.asar!lib/main.js` win32 分支 `Menu.setApplicationMenu(null)`），所以 `Ctrl+Shift+R` 与 `Ctrl+R` 都**不会重新读盘**，不能用来判断插件是否更新。客户端 bundle 实际由宿主 `dsh-client-hmr` 每 500ms `stat` 轮询 + `/plugins/events` SSE `rebuilt` 事件自动热替换，改完 `lib/client.js` **什么都不用按**，等一两秒即生效；要确认是否生效，用 `curl` 取 `/plugins/??dsh-model-fold/client.js` 看 `MF_VERSION`。
+
+## 1.0.8 (2026-11-15) — 修「第一次点开新面板、第二次点冒出旧面板」
+
+- **现象**：1.0.7 之后第一次点 composer 模型按钮弹出的是自绘级联面板；同一会话第二次点，级联关闭的同时官方旧菜单（搜索框 + 来源分组 + 底部工具条）冒了出来。
+- **根因**：**官方菜单是在「按钮按下」阶段就打开的**，不是点击之后。官方 ModelSelect 的 `rootRef onMouseDown` 一按下就 `setOpen(true)`；v0.6.1 起插件只能在按下瞬间给 `html` 打 `data-mf-model-opening`，靠 `html[data-mf-model-opening] div[role="menu"]{visibility:hidden !important}` 把它藏起来（600ms 条件移除 / 1000ms 无条件移除）。**藏起来 ≠ 没打开** —— 菜单一直在那儿，只是不可见；自绘级联一关闭、预隐藏一到期，它就显形了。所以问题不在「旧面板的代码没删」，而在「官方菜单每次都真的被打开了」。
+- **修复①（源头掐断）**：新增 `canOwnModelMenu(trg)`（= `isModelTriggerBtn(trg)` 且模型目录 `groups` 非空，与 `openCascade` 的唯一 early-return 对齐，即「拦下来一定能弹出面板」）；`onDocModelTriggerDown` 在确定为自绘接管时 `ev.stopPropagation()`，让这次按下到不了官方 rootRef → 官方菜单**根本不打开**。只 stopPropagation，**不 preventDefault**（否则浏览器不再派发 click，自绘级联反而打不开）。
+- **修复②（兜底按回去）**：新增 `dismissOfficialModelMenu()`：若 `findModelTrigger()` 的 `aria-expanded === "true"`（官方菜单正开着）就同步摘掉本拦截监听 → `trg.click()` 关掉 → `finally` 挂回（`click()` 派发同步事件，不摘会被自己再拦一次 → 菜单关不掉 → 死循环）；随后 400ms 再撤 `data-mf-model-opening`（官方关闭是 React 异步状态更新，立刻撤隐藏会看见菜单闪一下）。在 `openCascade` 末尾与 `closeCascade` 内各调一次 —— 即使修复①因官方注册顺序失效，级联打开的这一刻也一定把官方菜单按回去，**它再也没有机会躲在后面**。
+- **生效方式**：只改客户端 bundle → 由宿主 `dsh-client-hmr` 自动热替换（**桌面端 Ctrl+Shift+R 并不会重新读盘**，详见 1.0.9 条目）。
+
+## 1.0.7 (2026-11-15) — 修「未选模型点开是旧界面」：新旧两套面板统一为自绘三级级联
+
+- **现象**：还没选过模型时，点 composer 的模型按钮弹出的是官方原始菜单（搜索框 + 来源分组列表 + 底部「悬浮 / 面板 / 列表」工具条）；一旦选过模型，同一个按钮弹出的却是插件自绘的三级级联面板（来源 / 模型 / 强度三列 + 测活）。两套界面并存，看起来就像「两种新旧模板」。
+- **根因**：v0.6.4 起的「点击拦截 + 菜单预隐藏」判据写的是 `trg.querySelector("[data-provider-id][data-model-id]")`。这个数据元素是**官方按钮里当前选中的模型**渲染出来的 —— 没选过模型时按钮里没有它，判据不成立：`onDocCascadeClick` 直接 return（不拦截）、`onDocModelTriggerDown` 也直接 return（不预隐藏），官方菜单于是原样弹出；选过模型后判据成立，才拦截并弹自绘面板。**同一个按钮，行为取决于选没选过模型**。
+- **修复**：抽出统一判据 `isModelTriggerBtn(trg)`，三级任一成立即认定：① 按钮内含模型数据元素（选过模型，即原判据）；② composer 内唯一一个 `button[aria-haspopup="menu"]`（未选模型时的真实形态，不误伤别的菜单钮）；③ 按钮文案命中「请选择模型 / Select a model / …」占位。`onDocModelTriggerDown` 与 `onDocCascadeClick` 都改用该判据，未选模型时同样预隐藏官方菜单、弹出自绘面板。
+- **防死点兜底**：判据覆盖面变广，为防止「拦下来了但自绘面板没开成」（模型目录尚未加载、分组为空时 `openCascade` 会直接 return）导致「点了没反应」，拦截后补一条回退：面板确实没打开时，撤掉预隐藏并 `trg.click()` 把官方菜单补点开一次 —— 用户任何情况下都选得到模型。补点前先**同步摘掉本拦截监听**再挂回（`click()` 派发的是同步事件，不摘的话补点会被自己再拦一次 `preventDefault` → 菜单仍不开 → 又进兜底 → 无限递归，表现为点了没反应 + CPU 空转）。
+- **死代码同步**：`onDocCapTrigger` 全文没有 `addEventListener` 注册点（只在 dispose 里被 remove），实际不生效；其判据一并同步为 `isModelTriggerBtn`，避免将来启用时把这个 bug 重新引进来（已加注释标注现状）。
+- 纯客户端改动（lib/client.js）：**Ctrl+Shift+R 硬刷新**即生效，无需退出 DSH。
+
 ## 1.0.6 (2026-11-13) — 面板按内容自适应：强度列不再被拉宽，状态列对齐
 
 - **强度列右侧大片空白根治**：`.dsh-mf-cols` 是 `#dsh-mf-cascade`（flex column）的子项，默认 `align-items:stretch` 把它横向拉到面板满宽，而三列都是 `flex:0 0 auto`，剩下的宽度全堆在第三列右边。加 `align-self:flex-start` 让列区只占内容宽；窗口窄到放不下时列区自身横向滚动（滚动条隐藏），不再留白也不再裁内容。
