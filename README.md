@@ -1,8 +1,8 @@
 # dsh-model-fold
 
-> **功能描述**：三级级联模型面板（来源 → 模型 → 思考强度），支持识图与思考强度一键开关、能力图标，以及逐模型真实测活并把结果持久化保存。适配 DSH 内核 0.2.2-rc.1。
+> **功能描述**：三级级联模型面板（来源 → 模型 → 思考强度），支持识图与思考强度一键开关、内置「启用智能体团队协作」开关、能力图标，以及逐模型真实测活并把结果持久化保存。适配 DSH 内核 0.2.2-rc.1。
 >
-> **English**: Three-column cascade model picker (provider to model to reasoning effort) with one-click image and reasoning switches, capability icons, and real per-model availability probes whose results persist across restarts. Adapts DSH kernel 0.2.2-rc.1.
+> **English**: Three-column cascade model picker (provider to model to reasoning effort) with one-click image and reasoning switches, a built-in teammate toggle, capability icons, and real per-model availability probes whose results persist across restarts. Adapts DSH kernel 0.2.2-rc.1.
 
 
 **给 DSH 的模型选择器换成「来源 / 模型 / 强度」三级级联面板。** 不再一条长列表翻到底，也不再打开官方模型菜单。
@@ -21,6 +21,7 @@
 | **逐模型真实测活** | 「测活」对当前来源每个模型发一条 1-token 真实请求：绿色 ● 可用、红色 ✕ 不可用；状态栏实时显示进度 |
 | **测活结果持久化** | 结果写入 `~/.dsh/model-fold-probe.json`（`DSH_HOME` 可覆盖），关面板、重启 DSH 后仍在；重测自动覆盖 |
 | **显示 / 隐藏测活结果** | 「显示测活」开关控制绿 ●/红 ✕ 的显示；关闭只隐藏，不删除记录 |
+| **团队协作开关** | 面板底部内置「团队协作」开关，等价官方模型菜单的「启用智能体团队协作」——按会话保存、关闭前确认，无需再回到官方菜单 |
 | **紧凑布局** | 宽度随内容自适应（`width: max-content`），上限 `min(94vw, 880px)`、窄屏最小 `min(92vw, 300px)`，三列 grid、两行 footer；字号支持 8–15 手动输入 |
 
 ## 截图
@@ -50,6 +51,7 @@ dsh plugin add dsh-model-fold
    - **开启识图+思考**：给所有模型打开图片输入与完整思考档位；
    - **关闭识图+思考**：关闭图片输入与思考档位；
    - **显示测活**：显示/隐藏上次测活结果；
+- **团队协作**：一键开/关当前会话的「智能体团队协作」（共享任务板），与官方模型菜单里的同名开关等效；
    - **测活**：对当前来源逐模型发真实请求（会消耗额度）；
    - **比对**：只比对来源返回的模型清单，不逐个测活；
    - **字号**：8–15，手动输入。
@@ -82,7 +84,7 @@ node --check lib/index.js
 
 客户端改动：由宿主 `dsh-client-hmr` 每 500ms 轮询 + `/plugins/events` 热替换，**无需按键**（桌面端没有注册 `Ctrl+R` / `Ctrl+Shift+R` 等 reload 加速键，按了也不会重新读盘）；若热替换后仍跑旧逻辑（旧模块的 document 监听残留），**彻底退出 DSH 再启动**即恢复。宿主改动（`lib/index.js` / `package.json` / `cordis.patch.yml`）：一律彻底退出 DSH 再启动。
 
-确认当前实际运行的版本：`curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js"` 看 `MF_VERSION`，或看启动日志里的 `host half mounted (v1.0.9)`。
+确认当前实际运行的版本：`curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js"` 看 `MF_VERSION`，或看启动日志里的 `host half mounted (v1.0.10)`。
 
 ## License
 

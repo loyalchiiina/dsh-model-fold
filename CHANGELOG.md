@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.10 (2026-11-15) — 把官方「启用智能体团队协作」开关搬进自绘级联面板
+
+- **新增**：级联面板底部新增「团队协作」开关（内联在「当前选择模型名」右侧同一行），等价官方模型菜单里的「启用智能体团队协作」——直接调 `remote.agentTeams.setEnabled(sessionId, enabled)`，状态从会话投影 `agentTeam` 读（`sessions.list → projectionsBySession[sid].values.agentTeam`，兜底 `binding(sid).session.projections.faceOf('agentTeam')`）。按会话保存；关闭前若本会话已用过模型会先弹确认（与官方一致）；子会话或能力不可用时该行自动隐藏。
+- **布局**：面板底栏由单行 `nowrap` 改为两行堆叠（`.dsh-mf-capcfg` `flex-direction:column`）：第一行「当前选择模型名 + 团队开关」，第二行「字号 + 操作按钮」；模型名去掉 `routing group` 后缀截断、允许换行完整显示（`white-space:normal;word-break:break-word`），不再拥挤/显示不全。
+- **注入**：`start(ctx)` 内新增两个非阻塞注入 `ctx.inject(["sessions"])` / `ctx.inject(["remote.agentTeams"])`（不进 `exports.inject`，缺依赖不影响主功能，规避 §7.32 类整插件静默不激活）；附诊断钩子 `window.__mfTeamDebug()`。
+- **生效方式**：客户端 bundle，桌面端无刷新快捷键，改 `lib/client.js` 由 `dsh-client-hmr` 自动热替换（约 1–2 秒），`curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js"` 看 `MF_VERSION` 确认。
+
 ## 1.0.9 (2026-11-15) — 1.0.8 实测未生效：补「晚到的官方菜单」与「点错按钮」两个漏洞
 
 - **现象**：1.0.8 装好后实测「重载后还是一样」——第一次点开自绘级联，第二次点仍然冒出官方旧面板。
