@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 1.0.11 (2026-11-16)
+
+### 图标配色：写死品牌色，深色主题下不再看不清
+
+- 根因：原 `icon.svg` 用 `stroke="currentColor"`，而 DSH 以 `<img>` / CSS `background-image`（data-URI）方式渲染插件图标，SVG 作为独立文档时 `currentColor` 取初始值黑色 —— 深色主题深底上几乎不可见。
+- 改法：`currentColor` → 写死品牌色 `#4C7DFF`；几何、`viewBox`、线宽一律不变；浅色（#F2F3F5）与深色（#212227）两种底色实测均清晰。
 ## 1.0.10 (2026-11-15) — 把官方「启用智能体团队协作」开关搬进自绘级联面板
 
 - **新增**：级联面板底部新增「团队协作」开关（内联在「当前选择模型名」右侧同一行），等价官方模型菜单里的「启用智能体团队协作」——直接调 `remote.agentTeams.setEnabled(sessionId, enabled)`，状态从会话投影 `agentTeam` 读（`sessions.list → projectionsBySession[sid].values.agentTeam`，兜底 `binding(sid).session.projections.faceOf('agentTeam')`）。按会话保存；关闭前若本会话已用过模型会先弹确认（与官方一致）；子会话或能力不可用时该行自动隐藏。
