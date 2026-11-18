@@ -1,5 +1,67 @@
 # Changelog
 
+## 1.0.17 (2026-11-18)
+
+### 强度列宽度改按「全部模型真实档位标签」实测
+- 缺陷：强度列宽测量探针挂在 `document.body` 下，而标签 span 的样式选择器是 `#dsh-mf-cascade .dsh-mf-crowname`（要求祖先为面板），选择器不匹配 → 用浏览器默认 16px 测量，结果被顶到 148px 上限；标签实际只需约 25px，强度列长期留大片空白。
+- 缺陷：测量用的标签集合是硬编码的（7 档 fallback 中文 + High/Medium/Low/Max/Off），未覆盖各网关模型的自定义档位名（Minimal / Xhigh / Auto / None / 自定义中文等），不同模型档位集合不同时测不准。
+- 改法：新增 `cascadeEffortLabelSet()` 遍历全部 provider 全部模型的 `reasoning.efforts` 真实名称并合并 fallback 去重；探针字号改为 11.5px / 字重 500，与面板内 `.dsh-mf-crow` 完全一致；宽度 = 最宽标签 + 行内 padding 14 + ✓ 槽位 16 + 富余 6，上限放宽到 180px。
+- 防御：`cascadeEffortColumnWidth()` / `cascadeModelColWidth()` 在 provider 数据未就绪（groups 为空）时返回 0 且不缓存，避免把 fallback 宽度永久锁死。
+
+## 1.0.16 (2026-11-18)
+
+### 修正 1.0.15 钉宽导致内容横向溢出被裁切
+- 缺陷：1.0.15 把面板宽钉死，但 `.dsh-mf-cols` 仍是 `width:max-content`；三列内容总和（来源列 + 实测模型列 + 强度列）超过钉死值时，列容器横向溢出，强度列被推出可视区并裁切。
+- 缺陷：模型列基准宽度用 `36vw` 盲估，magpie 等长名页仍被省略号截断，与「来源完整显示」的口径不一致。
+- 改法：① `.dsh-mf-cols` 改 `width:100%`，跟随面板宽，不再撑出可视区（`overflow-x:hidden`）；② 新增 `cascadeModelColWidth()`，实测全部 provider 下最长模型名的实际渲染宽（11.5px/500 字重），加 caps 图标 24 + ✓ 槽位 16 + 行内 padding 12 + 富余 16，上限随面板 94vw/880px 收敛；③ 钉宽后调 `repositionCascade()` 修正左侧定位，避免变宽后越出右边界。
+- 效果：切换 provider 时面板宽度恒定不变，且最长模型名在 880px 上限内完整显示；只有在超长名 + 窄屏同时成立时才省略。
+## 1.0.15 (2026-11-18)
+
+### 面板总宽钉死：切换模型来源时面板不再左右变宽
+- 根因：面板容器 `width:max-content` 且三列全 `flex:0 0 auto`，模型列宽度由当前 provider 最长模型名决定；magpie 等本地网关模型名很长（如「本地-质量(Q6/强推理/256K)」），切到该页整面板明显变宽。
+- 改法：① 模型列改 `flex:1 1 auto;min-width:120px`（弹性填充，内容窄补白、宽省略，不再驱动总宽）；② 新增 `cascadePinPanelWidth()`，首次打开面板时实测「来源列宽 + 强度列固定宽 + 基准模型列宽（max(260px, 36vw)）」求和钉在面板上（clamp [320px, 94vw]），会话内只钉一次，切页/搜索不再改变。
+- 兼容：默认档「跟随来源」高度语义不变；锁定高度档不变；强度列固定宽不变。
+## 1.0.14 (2026-11-18)
+
+### 修：中间「模型」列宽度随选中项抖动
+
+- **根因（三条叠加）**：
+  - `.dsh-mf-crow.on{font-weight:700}`：选中行文字变粗，粗体比常规体宽 3~5%，该行 max-content 变宽，整列宽度跟着变，面板左右抖动；
+  - `.dsh-mf-crow.on .dsh-mf-crowright{font-size:14px}`：只有选中行的 ✓ 被放大，槽位几何与未选中行不一致；
+  - 未选中行的 ✓ 槽位是空 `span`，选中行才有内容，行宽依赖选中态。
+- **改法**：
+  - 去掉选中态的 `font-weight:700` 与 ✓ 的 `font-size:14px`；选中仍用背景色 `rgba(79,124,255,.18)` + 品牌色文字 + ✓ 表达；
+  - `cascadeRow()` 每行都写入 ✓，未选中时 `visibility:hidden` 保留占位，行宽与选中态完全无关；
+  - ✓ 槽位锁死几何：`flex:0 0 16px; width/min-width/max-width:16px; overflow:hidden; line-height:16px`。
+- 影响范围：来源列、模型列、强度列共用的 `.dsh-mf-crow`，三列选中态都不再改变行宽。
+## 1.0.13 (2026-11-18)
+
+### 级联面板底部控件与强度列宽修订
+
+- **删「比对」按钮**：`testProviderModels()` 与 `.dsh-mf-capcfg-test` 样式一并移除（该按钮只做清单比对，不做逐模型测活，价值与「测活」重复）。
+- **底部控件合并为一行、不拐行**：面板高度控件（`面板高度 [px] [跟随来源] [锁定高度]`）与字号/操作按钮合并到同一行；`.dsh-mf-capcfg-btn` 由 `flex:0 0 auto` 改为 `flex:0 1 auto; min-width:0`，标签保持 `flex:0 0 auto`，行内 `gap` 4px→3px、按钮内边距 6px→4px；面板过窄时该行横向滚动而不换行。
+- **强度列宽度固定**：新增 `cascadeEffortColumnWidth()`，用隐藏探针实测全部档位标签（中文 关闭/极低/低/中/高/极高/最高 + 英文 Off/Low/Medium/High/Max）的渲染宽度，取最大值 + 34px（行内边距与 ✓ 槽位，上限 148px）作为第 3 列宽度，同时钉到 `.dsh-mf-colbody` 与其父 `.dsh-mf-col`。此前列宽随所选模型的档位集合变化，切换模型时面板宽度持续跳动。
+- **切换高度模式后刷新面板**：新增 `refreshCascadeContent()`，在「跟随来源 / 锁定高度」按钮与高度输入框改值后重渲染来源列与模型列，并重算高度、重新定位。
+## 1.0.12 (2026-11-18)
+
+### 级联面板高度：新增「跟随来源 / 锁定高度」两档
+
+- **保留原有语义（默认档）**：面板高度 = min(来源列完整高度, 视口上限 140~380px)。来源列永远完整显示，这条规则不改。
+- **根因**：来源列只有 1~2 个 provider 时，`base = colEls[0].scrollHeight` 只有一两行高，模型列可视区被一起压低，几百个模型只剩一两行能看。
+- **新增**：面板底部多一行「面板高度」，两个按钮 + 一个数字输入框：
+  - `跟随来源`（默认，与原行为完全一致）
+  - `锁定高度`：强制 `CASCADE_H = 输入值`（受视口上限约束，140~380px，默认 380），来源少时也能保证模型区够高
+- 改高度后自动重新定位面板（`repositionCascade`），避免变高后顶部越界。
+- 记忆：`localStorage` 键 `dsh-model-fold-cascade-hmode`（auto/lock）与 `dsh-model-fold-cascade-hlock`（px）。
+- **注**：`MF_VERSION` 常量此前停留在 1.0.10（落后 package.json），本次一并改为 1.0.12。
+
+> 早期草案（把高度基准改成 max(来源列, 模型行数×行高)）已被否定并回退：来源列必须完整显示，高度只允许用户通过「锁定高度」手动放大，不由代码擅自改基准。
+
+### 验证
+
+- `node --check lib/client.js` 通过；`readHMode/readHLock/applyCascadeHeight/repositionCascade` 均已落到文件。
+- 「跟随来源」档的 `CASCADE_H = Math.min(base, cap)` 与原版逐字一致（回归安全）。
+
 
 ## 1.0.11 (2026-11-16)
 

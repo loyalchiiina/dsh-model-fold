@@ -84,7 +84,7 @@ node --check lib/index.js
 
 客户端改动：由宿主 `dsh-client-hmr` 每 500ms 轮询 + `/plugins/events` 热替换，**无需按键**（桌面端没有注册 `Ctrl+R` / `Ctrl+Shift+R` 等 reload 加速键，按了也不会重新读盘）；若热替换后仍跑旧逻辑（旧模块的 document 监听残留），**彻底退出 DSH 再启动**即恢复。宿主改动（`lib/index.js` / `package.json` / `cordis.patch.yml`）：一律彻底退出 DSH 再启动。
 
-确认当前实际运行的版本：`curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js"` 看 `MF_VERSION`，或看启动日志里的 `host half mounted (v1.0.10)`。
+确认当前实际运行的版本：`curl "http://127.0.0.1:<端口>/plugins/??dsh-model-fold/client.js"` 看 `MF_VERSION`，或看启动日志里的 `host half mounted (v1.0.17)`。
 
 ## License
 
