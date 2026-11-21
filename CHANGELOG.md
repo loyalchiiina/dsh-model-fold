@@ -1,5 +1,163 @@
 # Changelog
 
+> 发布说明：npm 上此前最新发布版为 **1.0.17**（2026-11-18）。1.0.18–1.0.25 是 2026-11-20～21 的连续内部迭代；1.0.26 / 1.0.27 / 1.0.28 三版为**未发布的内部迭代**，相关改动已在 1.0.25 中回退，对外最终以 **1.0.25** 发布。
+
+## 1.0.25 回退说明 (2026-11-21)
+
+### 锁定高度范围恢复 140–380 + 跟随来源不再要求滚动（v1.0.25g）
+- 用户反馈两处不符合预期：①「锁定高度」的可选范围过小；②「跟随来源」应当自适应，不应需要滚动才能看到全部来源列表。
+- 修复：
+  1. **面板 max-height** 由写死的 `min(62vh,440px)` 改为 `calc(100vh - 40px)` —— 这才是「设 360/380 时设置行被遮盖」的真正原因（面板总高被硬卡在 440，列区 360 + 设置行约 110 必然溢出被 `overflow:hidden` 裁掉）。
+  2. **可用高 cap** 不再乘 `0.56` 小系数，改为「视口高 − 40 边距 − 非列区占用 chrome」。跟随来源 = `min(来源列真实内容高, cap)`，来源列能一次全部显示、不需要滚动。
+  3. **锁定高度范围**恢复 `H_MIN=140 ~ H_MAX=380`；`hIn.max` 同步改视口口径，只有屏幕极矮时才由 cap 兜底。
+- 结果：锁定 360/380 时设置行仍在面板内；跟随来源时来源列完整可见、无多余空白、无滚动。
+
+### 「跟随来源」= 来源列真实内容高，量法精确到行（v1.0.25f）
+- 用户反馈：面板底部与内容之间仍有明显缝隙，要求继续收紧到刚好贴合。
+- 双重根因：
+  1. **量法虚高**：`col` 的直接子元素 `.dsh-mf-colbody` 是 `flex:1 1 auto`，会被列高撑满；量它的底边 = 列底 = 上一轮设的高度 → 自反馈，永远多一截。
+  2. **口径偏离**：v1.0.25d 曾改成「三列取最大」，模型列更长时面板被撑高，左栏下方一大片空白。
+- 修复：
+  - 口径回归按钮本义 ——「跟随来源」高度 = **第一列（来源列）** 真实内容高；仅当来源列为空（搜索结果视图）才退回量其它列。
+  - 量法改为 `headH`（列标题，`flex:0 0 auto` 不被拉伸）+ `bodyH`（colbody 内每一行 `getBoundingClientRect().bottom` 最大值 − colbody 顶部），二者相加 = 真实内容高，不含被拉伸空白。
+  - `chrome`（面板非列区占用）改用实际计算值 `paddingTop+paddingBottom + rowGap×子元素数`，不再写死 `+16`（少算 gap 会让 cap 偏大）。
+- 结果：跟随来源 = `min(来源列真实内容高, cap)`，面板底边贴住来源列最后一行。
+
+### 「跟随来源」量高改真实包围盒，消除虚高缝隙（v1.0.25e）
+- 用户报「跟随来源缝隙还是大」。
+- 根因：`offsetHeight` 累加在「列体 flex 撑满 + 子项被拉伸」时会把空白算进去 → 测得虚高 → 面板比内容高、底部留缝。
+- 修复：改为量「列内直接子元素 `getBoundingClientRect().bottom` 的最大值 − 列顶部」，得到真实内容底边；量不到才退回 offsetHeight/scrollHeight。三列取最大。
+
+### 「跟随来源」改为三列最高者自适应（v1.0.25d）
+- 用户反馈：「跟随来源」的效果不符合预期，疑问是否按来源文字完整自适应。
+- 澄清+修正：「跟随来源」= 跟随**三列里内容最高的那一列**自适应，让最长列完整显示、短列自然留白。之前 v1.0.25a 只量来源列，若模型列更长会被裁、短时又空旷，故改为 `base = max(每列内容高)`，跟随来源 = `min(base, cap)`。
+
+### 锁定高度加动态上限，防设置行被遮盖（v1.0.25c）
+- 用户报：锁定高度设 360 时设置行（高度/跟随来源/…/刷新 那一排按钮）被遮盖。
+- 根因：`hIn.max` 与 change 校验都写死 `H_MAX=380`，超过「面板可用高 cap」的值也能存，列区按它撑高后 + 设置行 > 面板 max-height，设置行被 `overflow:hidden` 裁掉。
+- 修复：`syncCascadeHeight` 里算 `lockMax=max(H_MIN, min(cap, H_MAX))`，锁定模式用 `min(readHLock(), lockMax)`；`syncCascadeCfg` 每次刷新把 `hIn.max` 设为动态可用高；change 时按 `hIn.max` 收口输入值。
+
+### 底部当前选择行加粗（v1.0.25b）
+- 用户要求把底部状态行「Magpie · deepseekV4.1 · routing group · 默认」（`.dsh-mf-capcfg-cur`）加粗。
+- 改：`.dsh-mf-capcfg-cur` 的 `opacity:.75` → `opacity:.9`，并加 `font-weight:600`（字号 10.5px 不变）。
+
+### 「跟随来源」底部留大空隙修复（v1.0.25a）
+- 根因：`syncCascadeHeight` 里 `var base = colEls[0].scrollHeight`。列区 `.dsh-mf-col` 在 `align-items:stretch` 下被撑满 wrap，`wrap.style.height="auto"` 时列高可能随面板整体被撑开，`scrollHeight` 大于「来源条目真实内容高」→ 面板高度按偏大的值设定，底部留一大片空白（用户报「跟随来源后还有很大间隙」）。
+- 修复：改为累加 `colEls[0]` 各子元素 `offsetHeight` 得到「内容自然高」`inner`，仅当 `inner<=0` 才回退用 `scrollHeight`。跟随来源 = `min(inner, cap)`。
+
+### 按用户要求把 client.js 回退到 1.0.25 状态
+- 用户反馈 1.0.28「跟随来源」高度仍偏高（面板下方留大片空白），要求「回退到 1.0.25」。
+- 处理：撤销 1.0.26 / 1.0.27 / 1.0.28 三版对 `syncCascadeHeight()` 与 `softRefreshCascade()` 的改动（含 v1.0.26 量高前置复位、v1.0.27 的 height:auto 内联与 availReal 收口、v1.0.28 的步骤 0 复位与 4b 二次定位），恢复 1.0.25 版 `syncCascadeHeight()`（panelMax 实测 + chrome + cap=min(innerHeight*0.56, avail)）与 `softRefreshCascade()`（一次重算 + 一次定位）。
+- 保留：1.0.25 的「刷新」按钮 / softRefreshCascade、1.0.20~1.0.24 的按钮外观、括号计数、团队协作默认开启等全部修复。
+- 版本号回到 1.0.25，client.js 212758 字节，node --check 通过。
+
+## 1.0.28 (2026-11-21)
+
+### 修「改高度 / 切换高度模式后面板高度不回到应有值」
+- 缺陷：`mkH`(跟随来源/锁定高度) 与 `hIn`(高度输入框) 的处理顺序是 `applyCascadeHeight()` → `softRefreshCascade()`。`applyCascadeHeight()` 先按旧 DOM 设了一次列高，随后 `softRefreshCascade()` 里的 `syncCascadeHeight(true)` 再把列区放 auto 量高时，**量到的是刚被设过的值**（基线已被污染），于是「跟随来源」要么贴着旧高度、要么完全不贴合；改成具体数值时也一样偏。
+- 改法：
+  1. 高度按钮与输入框改为**只调 `softRefreshCascade()`**，不再先跑一次 `applyCascadeHeight()`（一次到位，避免两次量高互相污染）；
+  2. `softRefreshCascade()` 开头新增「步骤 0 复位」：先把所有 `.dsh-mf-colbody`、`.dsh-mf-col`、列区外层和主容器的内联高度全部放成 `auto`，让接下来的 `syncCascadeHeight(true)` 从**内容自然高度**这个干净基线重算；
+  3. 高度定稿后再补一次 `repositionCascade()`，避免首帧重建未完成导致定位偏移。
+
+## 1.0.27 (2026-11-21)
+
+### 紧急修：面板整体溢出屏幕、底部设置行整排消失（1.0.26/27 回归）
+- 缺陷：1.0.26 把「跟随来源」的总高改成 `want = 来源列内容自然高 + chrome`，只受 `min(62vh,440)` 收口。当来源列内容多（如国内平台中转站 14 项 + Magpie 42 项）时 `want` 会远大于面板 `max-height:min(62vh,440px)`，而主容器是 `overflow:hidden` —— 结果是面板被内容顶穿，底部搜索行的设置区（高度/字号/识图+思考/测活/刷新/⟳）被整排推出可见区域，用户看到的就是"回退了"。
+- 改法：
+  1. 主容器强制 `height:auto` 内联，让 `max-height` 成为真正的硬上限；
+  2. 实测 `panelMax = getBoundingClientRect().height`（max-height 生效时返回被压缩后的真实可见高），再兜底 `panelMax = min(panelMax, innerHeight - 24)`，绝不让面板越过视口；
+  3. `availReal = panelMax - chrome`，`cap = max(140, min(availReal, innerHeight - 40))`；
+  4. 「跟随来源」回到 `CASCADE_H = min(来源列内容自然高, cap)` —— 内容放得下就紧贴内容，放不下就由 cap 收口、列自己滚，**设置行永远留在面板内**。
+- 教训：1.0.26 的 `want = base + chrome` 与面板 `max-height` 是两套互相打架的高度预算；只能有一个预算（用 `max(140, panelMax - chrome)`），不能让内容自然高直接当总高。
+
+## 1.0.26 (2026-11-21)
+
+### 修「跟随来源」高度不再紧贴来源列内容（凭空多出留白）
+- 缺陷：`syncCascadeHeight()` 量 `panelMax = panel.getBoundingClientRect().height` 时，面板此刻还停在**上一轮的高度**（列区带着上一轮内联高度），量出来被污染；再加上 chrome 里固定写死的 `+16` 留白，导致「跟随来源」算出来的总高比来源列实际内容多一截，切换模式后更明显。
+- 改法：
+  1. **量之前先复位**：在取 `panel.getBoundingClientRect()` 之前，先把所有 `.dsh-mf-colbody` 的内联 `height/minHeight/overflowY` 与各 `.dsh-mf-col` 的高度、`wrap` 高度全部放成 `auto`，让面板反映「内容自然高度」；
+  2. **chrome 精确计算**：不再固定 `+16`，改为 `getComputedStyle` 读 `paddingTop + paddingBottom + rowGap × (子元素数 - 1)`；
+  3. **跟随来源的公式**：`want = 来源列内容自然高度(base) + chrome`，`CASCADE_H = min(want, 视口上限 min(62vh,440))` —— 面板恰好等于「来源列内容 + 自身 chrome」，不再有额外留白；内容超过视口时才收口并让列自己滚。
+
+### 团队协作标签字号恢复固定 11px（不随「字号」设置变化）
+- 用户要求：调整字号时**不要动团队协作那一行的字体**。已把 `.dsh-mf-teamrow-lbl` 与 `.dsh-mf-teamrow-inline .dsh-mf-teamrow-lbl` 从 `font-size:var(--mf-fs,11px)` 改回固定 `font-size:11px`。模型行、表头、来源计数仍随字号变化。
+
+## 1.0.25 (2026-11-21)
+
+### 新增「刷新」按钮 + 设置项改动后自动刷新面板
+- 新增按钮：设置行加了一个 `刷新` 按钮（`.dsh-mf-capcfg-refresh`，在「测活全部 / 显示测活」之后、`⟳ 检查更新` 之前），点一下等价于「关掉面板再打开」。
+- 新增 `softRefreshCascade()`：不真关面板，但做与重开等价的完整重建 —— ①重新从 `modelDirectories` 读来源分组；②清空搜索框；③清空三列 `.dsh-mf-colbody` 并 `refreshCascadeCaps() → cascadeRenderProviders() → cascadeRenderModels(pid)` 重建；④`CASCADE_H=0; syncCascadeHeight(true)` 重算高度；⑤`repositionCascade()` 重新定位；⑥`syncCascadeCfg(panel)` 再同步设置行高亮态。
+- 自动触发点（用户要求「更改按钮后自动刷新一下 ui 面板」）：高度模式按钮 `mkH`（跟随来源 / 锁定高度）、高度输入框 `hIn.change`、字号输入框 `fsIn2.change`、「识图+思考」`forceBtn` 与 `mkForce`、「显示测活」`vbtn` —— 全部改完即调 `softRefreshCascade()`。原来这些地方只有 `refreshCascadeContent()`（只重渲染、不重置列体高度），现在统一换成更完整的软刷新。
+
+## 1.0.24 (2026-11-21)
+
+### 修「锁定高度 → 跟随来源」仍要关掉面板重开才刷新高度
+- 缺陷：`syncCascadeHeight(reset)` 量「跟随来源」的自然高度时只把外层 `.dsh-mf-col` 设成 `height:auto`，列体 `.dsh-mf-colbody` 还带着上一轮 `syncCascadeHeight` 写下的内联 `height`（以及 `overflow-y:auto`）。行还被滚动容器卡在旧高度里，`colEls[0].scrollHeight` 量出来的自然是旧值，于是高度不动；只有关掉面板重开（走首次渲染、内联样式被重建）才恢复。
+- 改法：测量阶段先把所有 `.dsh-mf-colbody` 的内联 `height` / `minHeight` / `overflowY` 全部清成 auto，量完再清空内联（`""`）并让 CSS 的 `flex:1 1 auto;min-height:0;overflow-y:auto` 接管，最后统一按 `CASCADE_H` 设定列高。
+- 效果：点「跟随来源」当场就按来源列实际内容重算高度，不需要关面板重开。
+
+## 1.0.23 (2026-11-21)
+
+### 修「面板底部设置行被挡住，高度/字号/识图+思考/测活那些按钮看不见」
+- 缺陷：面板是 flex column，主容器有 `max-height:min(62vh,440px)` + `overflow:hidden`；而 `syncCascadeHeight()` 给列区的高度上限是**写死的 380px**。窗口不高时（62vh ≈ 380 或更小），「列区 380 + 搜索行 ~36 + 设置区 ~60 + 纵向 padding/gap ~20」远超面板 max-height，多出来的部分被 `overflow:hidden` 直接裁掉 —— 被裁的正是最底部的设置行，所以高度/字号/识图+思考/测活本页/测活全部/显示测活/⟳ 全看不见。
+- 改法一（CSS）：顶部搜索行、设置区 `.dsh-mf-capcfg`、团队协作行 `.dsh-mf-teamrow`、底部行 `.dsh-mf-cacfoot` 统一 `flex:0 0 auto`（不许被 flex 压缩）。
+- 改法二（JS）：`syncCascadeHeight()` 的列区上限改为**动态计算** —— `panelMax = 面板实测高度`（取不到时退回 `min(62vh,440)`），`chrome = 面板内除列区以外所有子元素的高度和 + 16px 余量`，`cap = max(140, min(56vh, panelMax - chrome))`。列区永远只占「剩下能用多少」，设置区一定在面板内部。
+- 效果：任何窗口高度下，设置行都完整可见；列区不够时自身滚（`.dsh-mf-col` 本来就是 `overflow-y:auto`）。
+
+### 字号设置同步覆盖 5 条写死的规则（见 1.0.22 补述）
+- 已改为 `font-size:var(--mf-fs,11px)`：`.dsh-mf-crow`、`.dsh-mf-colhead`、`.dsh-mf-crowright`、`.dsh-mf-teamrow-lbl`、`.teamrow-inline .dsh-mf-teamrow-lbl`。
+
+## 1.0.22 (2026-11-21)
+
+### 修「锁定高度 → 跟随来源」切换后面板突然变很宽（要再点一次才恢复）
+- 缺陷：1.0.20 为了修按钮被裁，在 `applyCascadeHeight()` 里加了 `PANEL_LOCK=false; cascadePinPanelWidth()` 重新钉宽。但 `cascadePinPanelWidth()` 是用 `c1.getBoundingClientRect().width` **实测当前渲染宽度**来算面板总宽——切模式的那一刻列宽还停在上一轮被拉伸的状态，测出来偏大，钉出的面板就更宽，反复切换会累积放大。
+- 改法：撤掉 `applyCascadeHeight()` 里的重钉宽逻辑，只保留 `CASCADE_H=0; syncCascadeHeight(true); repositionCascade()`。按钮被裁的问题 1.0.20 已由 `flex-wrap:wrap` 独立解决，不需要靠重钉宽。
+- 效果：切换高度模式时面板宽度保持稳定，不需要再点一次刷新。
+
+### 新增团队协作「默认开启」
+- 官方 `agentTeams` 状态按会话存储、且新会话默认关闭；本插件开关走官方 `remote.agentTeams.setEnabled(sid, enabled)`，与官方按钮完全一一对应、真实生效。
+- 新增：`paint()` 读到当前会话 `enabled===false` 且该会话从未被自动开过 → 自动调 `setEnabled(sid, true)` 一次。
+- 用 localStorage 键 `dsh-model-fold-team-auto` 按 sid 记「已自动开过」（上限 200 条，超出按插入顺序淘汰）。因此**用户手动关掉后不会再被强开**，只是默认开启。
+
+### 修「字号」设置不生效
+- 缺陷：字号设置写到 `document.documentElement` 的 `--mf-fs`，但级联面板里真正显示内容的几条规则把字号**写死**了：`.dsh-mf-crow`（模型行）`font-size:11.5px`、`.dsh-mf-colhead`（表头）`11px`、`.dsh-mf-crowright`（计数）`11px`、`.dsh-mf-teamrow-lbl` / `.dsh-mf-teamrow-inline .dsh-mf-teamrow-lbl`（团队协作标签）`11px`。它们定义在 `var(--mf-fs,11px)` 那条（L378）之后，同特异性后者胜 → 改字号看不出任何变化。
+- 改法：上述 5 条全部改为 `font-size:var(--mf-fs,11px)`，跟随字号设置。设置行自身的控件（按钮 / 输入框 / 状态条）仍保留 10~12px 固定值，不随字号缩放。
+- 效果：字号 8~15 调整后模型行、表头、计数、团队协作标签同步变化。
+
+## 1.0.21 (2026-11-21)
+
+### 修来源列括号计数被裁（`(14)` 只显示到半个括号）
+- 缺陷：`.dsh-mf-crowright` 被写死 `flex:0 0 16px; width:16px; max-width:16px; overflow:hidden`。这个 16px 原本是给强度列 ✓ 槽位设计的，但来源列的计数 `(14)` 复用同一个 class，三个字符在 11px 字号下约 22px，超出即被 `overflow:hidden` 裁掉，看起来就是括号只显示一半。
+- 改法：改 `flex:0 0 auto; min-width:16px; width:auto; max-width:none; overflow:visible` —— 计数按内容自然宽度完整显示，✓ 槽位仍保底 16px 保持对齐。
+- 效果：来源列宽本来就按 max-content 自适应（`cascadePinPanelWidth()` 实测第 1 列宽度），括号不再被裁后左栏自动放宽到「最长来源名 + 计数」的完整宽度。
+
+## 1.0.20 (2026-11-21)
+
+### 修「锁定高度 → 跟随来源」切换后按钮行被裁 + 设置行按钮统一底色
+- 缺陷：`.dsh-mf-cfgrow-actions` 是 `flex-wrap:nowrap` + `overflow-x:auto` + 隐藏滚动条，切回「跟随来源」后宽度重算、按钮行放不下就被静默裁掉（看不到右侧按钮），必须关掉面板再打开才恢复。
+- 改法：改 `flex-wrap:wrap` + `overflow:visible`，放不下自动换行，任何面板宽度都能看全所有按钮。
+- 缺陷：`applyCascadeHeight()` 只重算高度，不重钉宽度，切换后宽度停在旧值。
+- 改法：切换时先重置 `PANEL_LOCK`，再 `cascadePinPanelWidth()` 按当前内容重钉宽度，最后 `repositionCascade()`。
+- 改法：`.dsh-mf-capcfg-btn` 基础样式统一加 1px 边框 + 淡灰底 + 6px 圆角（原来只有「识图+思考」有框，其余是纯文字），所有可点按钮外观一致；选中态蓝底、「识图+思考」开绿关红仍按更高特异性覆盖。
+
+## 1.0.19 (2026-11-21)
+
+### 撤回 1.0.18 的「锁定宽度」功能
+- 按用户要求删除面板宽度模式：`宽度 [输入框] 跟随来源 锁定宽度` 整行控件、`syncCascadeWidth()` / `applyCascadeWidth()`、localStorage 键 `dsh-model-fold-cascade-wmode` / `-wlock`、`readWMode/writeWMode/readWLock/writeWLock/cascadeCurWidth`、CSS `.dsh-mf-winput` 与 `.dsh-mf-capcfg-wmode`、`syncCascadeCfg()` 里的 wmode 同步循环，以及 `cascadePinPanelWidth()` 里的锁定宽度互斥判断。
+- 面板宽度回到 1.0.15 起的纯自动钉宽行为（首次打开实测钉死，切页不再变宽）。
+- 保留 1.0.18 的其余两项：设置行控件统一 24px 高度、「识图+思考」开启绿字 / 关闭红字。
+
+## 1.0.18 (2026-11-20)
+
+### 设置行控件统一高度 + 「识图+思考」开绿关红 + 新增「锁定宽度」
+- 缺陷：同一设置行里按钮（`.dsh-mf-capcfg-btn` 20/21px、`.dsh-mf-capcfg-force` 20px）与输入框（`.dsh-mf-fsinput` / `.dsh-mf-hinput` 24px）高度不一致，下沿参差不齐。
+- 改法：按钮统一 `box-sizing:border-box;height:24px;line-height:22px`，与两个输入框等高；「面板高度」标签缩短为「高度」，给新增控件让出宽度。
+- 缺陷：「识图+思考」开关只有蓝底选中态，开/关语义不明显。
+- 改法：新增 `data-force-state`（on/off），开启 = 绿字绿框（`--mf-ok`）、关闭 = 红字红框（`--mf-err`）；`paintForce()` 与 `syncCascadeCfg()` 双处同步，避免重绘后颜色丢失。
+- 新增：面板宽度模式 —— `宽度 [px] 跟随来源 锁定宽度`，与既有高度模式同构。默认「跟随来源」= 1.0.15 起的实测钉宽行为；「锁定宽度」写死输入框值（localStorage `dsh-model-fold-cascade-wmode` / `-wlock`，范围 300–1400px）。首次切到「锁定宽度」时以当前实测宽度作为默认值（`cascadeCurWidth()`）。
+- 兼容：`cascadePinPanelWidth()` 在锁定宽度模式下直接 return，避免钉宽逻辑与锁定值互相覆盖；切回「跟随来源」时重置 `PANEL_LOCK` 并重新钉一次实测宽。
+
 ## 1.0.17 (2026-11-18)
 
 ### 强度列宽度改按「全部模型真实档位标签」实测
