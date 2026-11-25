@@ -1,3 +1,10 @@
+## 1.0.26 — 2026-11-26
+
+性能：原生浮层 300ms 级 DOM 写入收敛
+
+- `updateTriggerCap`（350ms）：`document.hidden` 时直接 return；height/top/right/display 四项全部改成「值真的变了才写 style」——原实现每次都写，写 style 又会让下一轮 `getBoundingClientRect` 触发布局重算，等于自造强制同步布局。
+- 团队协作行 `paint()`：原实现每次订阅 emit 都 `row.innerHTML=""` 整行重建（SVG+3 span+switch+监听器），现按 `sid|enabled|lastUsed|inline` 算签名，签名未变则跳过重建；弹确认态会作废签名。
+
 # Changelog
 
 > 发布说明：npm 上此前最新发布版为 **1.0.17**（2026-11-18）。1.0.18–1.0.25 是 2026-11-20～21 的连续内部迭代；1.0.26 / 1.0.27 / 1.0.28 三版为**未发布的内部迭代**，相关改动已在 1.0.25 中回退，对外最终以 **1.0.25** 发布。
